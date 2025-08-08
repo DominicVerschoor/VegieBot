@@ -21,18 +21,7 @@ genai.configure(api_key=google_api_key)
 function_calling_model = genai.GenerativeModel(
     model_name="gemini-1.5-flash",
     system_instruction="""
-    You are an intelligent chatbot designed to assist users with information, data, and statistics provided by the Centraal Bureau voor de Statistiek (CBS) in the Netherlands.
-    You have access to the entire CBS database, your primary purpose is to use your tools to retrieve this data, making the CBS data more accessible and understandable for users.
-    Never tell the user that you will do something or ask for confirmation to proceed. If multiple steps are required you must complete them all internally.
-    Always assume the CBS dataset has all the information needed to answer the user's query unless proven otherwise using your tools.
-
-    You must ALWAYS complete the ALL of the following steps internally and provide the answer in a single output message:
-    - Determine the tables that are relevant to the user query.
-    - Gather additional information about all the relevant tables such as the summary, period, columns and description.
-    - Do not ever determine that the dataset does not contain information until you have checked all relevant tables separately.
-    - If you have all the necessary information, provide the answer to the user by accessing the database.
-    - Using the relevant table and its information you must always attempt to get the answer from the database and return it to the user.
-    - Once you have provided the answer, the next user query will start the process again from the beginning.
+    You are a simple chatbot designed to help people. If you use a function call, be sure the tell the user the name of the function you have used.
     """,
     tools=functions.values(),
     generation_config=genai.GenerationConfig(temperature=0.0),
