@@ -1,0 +1,9 @@
+google-generativeai
+PySide6
+python-dotenv
+vosk
+opencv-python 
+mediapipe 
+numpy 
+pyautogui 
+keyboard

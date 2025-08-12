@@ -4,11 +4,11 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                QLineEdit, QScrollArea, QSizePolicy)
 from PySide6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QTimer, QRect
 from PySide6.QtGui import QFont, QPalette, QColor
+import json
 
-# MonitorTracking.py should expose HeadMouseTracker
 from MonitorTracking import HeadMouseTracker
-# VoiceControl.py should expose VoskMicRecognizer
 from VoiceControl import VoskMicRecognizer
+from Chatbot import HaloChat
 
 class CollapsibleSidebar(QMainWindow):
     def __init__(self):
@@ -228,6 +228,8 @@ class CollapsibleSidebar(QMainWindow):
             }
         """)
         
+        self._start_chat()
+        
         # Enable mouse tracking for hover detection
         self.setMouseTracking(True)
         self.toggle_btn.setMouseTracking(True)
@@ -315,11 +317,16 @@ class CollapsibleSidebar(QMainWindow):
         """)
         self.chat_input.returnPressed.connect(self.send_message)
         
-        # Voice input button
-        voice_btn = QPushButton("🎤")
-        voice_btn.setFixedSize(35, 35)
-        voice_btn.setToolTip("Voice input")
-        voice_btn.setStyleSheet("""
+        self.chat_voice_btn = self.create_toggle_button(
+            "🎤",
+            "#f39c12",  # Orange for normal
+            "#e67e22",  # Darker orange for active
+            "",         # (emoji already in text)
+            'voice'     # <-- same state_key as the main mic
+        )
+        self.chat_voice_btn.setFixedSize(35, 35)
+        self.chat_voice_btn.setToolTip("Voice input")
+        self.chat_voice_btn.setStyleSheet("""
             QPushButton {
                 background-color: #6c757d;
                 color: white;
@@ -327,14 +334,10 @@ class CollapsibleSidebar(QMainWindow):
                 border-radius: 5px;
                 font-size: 14px;
             }
-            QPushButton:hover {
-                background-color: #5a6268;
-            }
-            QPushButton:pressed {
-                background-color: #e74c3c;
-            }
+            QPushButton:hover { background-color: #5a6268; }
+            QPushButton:pressed { background-color: #e74c3c; }
         """)
-        voice_btn.clicked.connect(self.toggle_voice_input)
+
         
         send_btn = QPushButton("Send")
         send_btn.setFixedWidth(60)
@@ -357,19 +360,19 @@ class CollapsibleSidebar(QMainWindow):
         """)
         send_btn.clicked.connect(self.send_message)
         
+        
         input_layout.addWidget(self.chat_input)
-        input_layout.addWidget(voice_btn)
+        input_layout.addWidget(self.chat_voice_btn)
         input_layout.addWidget(send_btn)
         chat_layout.addLayout(input_layout)
         
-        # Voice recording state
-        self.is_recording = False
+        self.chat_voice_btn.clicked.connect(self.toggle_voice_input)
         
         return chat_container
     
     def toggle_voice_input(self):
         """Toggle voice input recording"""
-        if not self.is_recording:
+        if self.is_recording:
             # Start recording
             self.is_recording = True
             self.chat_input.setPlaceholderText("🎤 Listening... (Click mic again to stop)")
@@ -384,7 +387,6 @@ class CollapsibleSidebar(QMainWindow):
                 }
             """)
             print("Voice recording started...")
-            # Here you would integrate with speech recognition
             
         else:
             # Stop recording
@@ -405,10 +407,12 @@ class CollapsibleSidebar(QMainWindow):
                 }
             """)
             
-            # Simulate voice-to-text result
-            voice_text = "Hello, this is a voice message simulation"
-            self.chat_input.setText(voice_text)
             print("Voice recording stopped. Transcribed text added to input.")
+
+    def handle_voice_result(self, result_json: str):
+        text = f'{json.loads(result_json).get("text", "")}. '
+        text = self.chat_input.text() + text
+        self.chat_input.setText(text)       
 
     def update_status_bar(self):
         """Update the status bar with active features and their colors"""
@@ -437,25 +441,15 @@ class CollapsibleSidebar(QMainWindow):
         # Add user message to chat
         current_text = self.chat_display.toPlainText()
         if current_text:
-            current_text += "\n\n"
+            current_text += "\n\n\n"
         
-        user_message = f"You: {message}"
+        user_message = f"You: {message}\n"
         
         # Simple AI response simulation (replace with actual AI integration)
-        ai_responses = [
-            "I'm here to help! What would you like to know?",
-            "That's an interesting question. Let me think about it...",
-            "I can assist you with various tasks. What do you need?",
-            "Great question! Here's what I think...",
-            "I'm processing your request. How can I help further?",
-            "Thanks for asking! I'm ready to assist you."
-        ]
-        
-        import random
-        ai_response = f"AI: {random.choice(ai_responses)}"
+        ai_response = self.chat.generate_response(message)
         
         # Update chat display
-        self.chat_display.setPlainText(current_text + user_message + "\n" + ai_response)
+        self.chat_display.setPlainText(current_text + user_message + "\n" + 'HALO: ' + ai_response)
         
         # Scroll to bottom
         self.chat_display.verticalScrollBar().setValue(
@@ -466,7 +460,7 @@ class CollapsibleSidebar(QMainWindow):
         self.chat_input.clear()
         
         print(f"User message: {message}")
-        print(f"AI response: {ai_response}")
+        print(f"HALO response: {ai_response}")
 
     def update_button_style(self, btn):
         """Update button style based on its checked state"""
@@ -492,13 +486,23 @@ class CollapsibleSidebar(QMainWindow):
             }}
         """)
 
-###############################################
     def on_button_toggled(self, btn):
         """Handle any toggle button click."""
         # 1) Update state
         key = btn.state_key               # e.g. 'face_tracking', 'voice', 'ai_agent'
         state = btn.isChecked()
         self.button_states[key] = state
+        
+        if key == 'voice':
+            # main mic: self.voice_btn
+            # tiny mic: self.chat_voice_btn (may not exist before chat is shown)
+            for other in (getattr(self, 'voice_btn', None), getattr(self, 'chat_voice_btn', None)):
+                if other is None or other is btn:
+                    continue
+                other.blockSignals(True)
+                other.setChecked(state)
+                self.update_button_style(other)
+                other.blockSignals(False)
 
         # 2) Route to the right start/stop
         self._handle_toggle(key, state)
@@ -517,6 +521,7 @@ class CollapsibleSidebar(QMainWindow):
 
     def _handle_toggle(self, key: str, state: bool):
         """Start/stop services based on toggle key."""
+        print('dispatch', key)
         dispatch = {
             'face_tracking': (self._start_face_tracking, self._stop_face_tracking),
             'voice'        : (self._start_voice,         self._stop_voice),
@@ -557,11 +562,8 @@ class CollapsibleSidebar(QMainWindow):
     def _start_voice(self):
         """Start speech recognizer; also sync any UI mic state if you have one."""
         if getattr(self, 'recognizer', None) is None:
-            # If you maintain a separate mic/recording UI, sync it here:
-            if hasattr(self, 'toggle_voice_input') and not getattr(self, 'is_recording', False):
-                self.toggle_voice_input()  # turn UI mic ON
-
-            self.recognizer = VoskMicRecognizer(model="vosk-model-small-en-us-0.15")
+            self.is_recording = True
+            self.recognizer = VoskMicRecognizer(model="language_models/eng_model", on_result=self.handle_voice_result)
             self.recognizer.start(background=True)
             print("[voice] started")
 
@@ -572,92 +574,25 @@ class CollapsibleSidebar(QMainWindow):
             finally:
                 self.recognizer = None
 
-        # If you maintain a separate mic/recording UI, sync it OFF:
-        if hasattr(self, 'toggle_voice_input') and getattr(self, 'is_recording', False):
-            self.toggle_voice_input()
-
+        self.is_recording = False
         print("[voice] stopped")
-#################################################
 
-    # def on_button_toggled(self, btn):
-    #     """Handle button toggle"""
-    #     # Update button state
-    #     self.button_states[btn.state_key] = btn.isChecked()
+    # --------------- Chat Gemini -----------------------------
+    def _start_chat(self):
+        self.chat = HaloChat()
+        self.chat.start()
+        print("[chat] started")
+
+    def toggle_chat_interface(self, show_chat):
+        """Show or hide the chat interface with animation"""
+        # For full-height sidebar, we don't need to animate height changes
+        # Just show/hide the chat widget
+        self.chat_widget.setVisible(show_chat)
         
-    #     # Handle AI Agent chat interface
-    #     if btn.state_key == 'ai_agent':
-    #         self.toggle_chat_interface(btn.isChecked())
-
-    #     # Handle Voice Detection button
-    #     if btn.state_key == 'voice':
-    #         if btn.isChecked():
-    #             self.toggle_voice_input()  # Start voice input
-    #         else:
-    #             if self.is_recording:
-    #                 self.toggle_voice_input()  # Stop voice input
-
-    #     # Update button appearance
-    #     self.update_button_style(btn)
-
-    #     # Update status bar
-    #     self.update_status_bar()
-
-    #     if self.button_states[btn.state_key]:
-    #         if btn.state_key == 'face_tracking':
-    #             if not hasattr(self, 'tracker') or self.tracker is None:
-    #                 self.tracker = HeadMouseTracker()
-    #                 self.tracker.start(block=False)  # non-blocking
-    #         elif btn.state_key == 'voice':
-    #             if not hasattr(self, 'recognizer') or self.recognizer is None:
-    #                 self.recognizer = VoskMicRecognizer(model="vosk-model-small-en-us-0.15")  # or path to Thai model thai-model
-    #                 self.recognizer.start(background=True)
-
-    #     print(f"{btn.text()} {'activated' if btn.isChecked() else 'deactivated'}")
-    #     print(f"Current active features: {[key.replace('_', ' ').title() for key, value in self.button_states.items() if value]}")
-    
-    # def handle_button_toggle(self, btn):
-    #     key = btn.state_key                  # 'face_tracking' or 'voice'
-    #     state = self.button_states.get(key)  # True means ON, False means OFF
-
-    #     if key == 'face_tracking':
-    #         if state:  # turned ON -> start if not already running
-    #             if getattr(self, 'tracker', None) is None:
-    #                 self.tracker = HeadMouseTracker()
-    #                 self.tracker.start(block=False)  # non-blocking thread
-    #         else:     # turned OFF -> stop if running
-    #             if getattr(self, 'tracker', None):
-    #                 try:
-    #                     self.tracker.stop()
-    #                 finally:
-    #                     self.tracker = None
-
-    #     elif key == 'voice':
-    #         if state:  # turned ON -> start if not already running
-    #             if getattr(self, 'recognizer', None) is None:
-    #                 self.recognizer = VoskMicRecognizer(model="vosk-model-small-en-us-0.15")  # or Thai model path
-    #                 self.recognizer.start(background=True)  # non-blocking thread
-    #         else:     # turned OFF -> stop if running
-    #             if getattr(self, 'recognizer', None):
-    #                 try:
-    #                     self.recognizer.stop()
-    #                 finally:
-    #                     self.recognizer = None
-
-
-    # def toggle_chat_interface(self, show_chat):
-    #     """Show or hide the chat interface with animation"""
-    #     # For full-height sidebar, we don't need to animate height changes
-    #     # Just show/hide the chat widget
-        
-    #     if show_chat:
-    #         # Show chat
-    #         self.chat_widget.setVisible(True)
-    #         # Add welcome message
-    #         self.chat_display.setPlainText("AI: Hello! I'm your AI assistant. How can I help you today?")
-    #     else:
-    #         # Hide chat
-    #         self.chat_widget.setVisible(False)
-    #         self.chat_display.clear()
+        if show_chat:
+            self.chat_display.setPlainText("AI: Hello! I'm your AI assistant. How can I help you today?")
+        else:
+            self.chat_display.clear()
     
     def update_status(self, message, color="#7f8c8d"):
         """Update the status label with a message and color"""
@@ -750,5 +685,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    # nigga
