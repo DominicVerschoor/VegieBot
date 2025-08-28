@@ -5,7 +5,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 
 class HaloChat:
-    def __init__(self, api_key=None, model_name="gemini-1.5-flash", temperature=0.0):
+    def __init__(self, api_key="AIzaSyChOPtzyr_Ypy9dBUG0Q-nBWwjvSPB6lt8", model_name="gemini-1.5-flash", temperature=0.0):
         # Load API key from .env if not provided
         load_dotenv()
         self.api_key = api_key or os.getenv("GOOGLE_API_KEY")

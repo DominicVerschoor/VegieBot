@@ -23,17 +23,18 @@ class CollapsibleSidebar(QMainWindow):
         self.chat_height = 300
         self.window_height = self.base_height
         
-        # Button states with their colors
+        # Button states with heavenly color scheme
         self.button_states = {
             'face_tracking': False,
             'colorblind': False,
             'ai_agent': False
         }
         
+        # Heavenly blue color palette
         self.button_colors = {
-            'face_tracking': '#3498db',
-            'colorblind': '#e74c3c',
-            'ai_agent': '#2ecc71'
+            'face_tracking': '#87CEEB',   # Sky blue
+            'colorblind': '#DDA0DD',     # Plum (soft purple)
+            'ai_agent': '#FFE4B5'        # Moccasin (soft golden)
         }
         
         # Set window properties
@@ -53,21 +54,24 @@ class CollapsibleSidebar(QMainWindow):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
         
-        # Create toggle button (arrow) - positioned in middle of screen height
+        # Create heavenly toggle button
         self.toggle_btn = QPushButton("◀")
-        self.toggle_btn.setFixedSize(30, 80)
+        self.toggle_btn.setFixedSize(35, 90)
         self.toggle_btn.setStyleSheet("""
             QPushButton {
-                background-color: #34495e;
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #87CEEB, stop: 1 #4682B4);
                 color: white;
-                border: none;
-                font-size: 18px;
+                border: 2px solid rgba(255, 255, 255, 0.6);
+                font-size: 20px;
                 font-weight: bold;
-                border-top-left-radius: 10px;
-                border-bottom-left-radius: 10px;
+                border-top-left-radius: 15px;
+                border-bottom-left-radius: 15px;
             }
             QPushButton:hover {
-                background-color: #2c3e50;
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #98D4EB, stop: 1 #5A9BD4);
+                border: 2px solid rgba(255, 255, 255, 0.9);
             }
         """)
         self.toggle_btn.clicked.connect(self.toggle_sidebar)
@@ -89,26 +93,32 @@ class CollapsibleSidebar(QMainWindow):
         # Header with title and close button
         header_layout = QHBoxLayout()
         
-        # Add title
-        title_label = QLabel("Vision & AI")
+        # Add heavenly title
+        title_label = QLabel(" HALO ")
         title_label.setAlignment(Qt.AlignLeft)
-        title_label.setFont(QFont("Arial", 16, QFont.Bold))
-        title_label.setStyleSheet("color: #2c3e50;")
+        title_label.setFont(QFont("Segoe UI", 18, QFont.Bold))
+        title_label.setStyleSheet("""
+            color: #4682B4;
+            text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.8);
+        """)
         
-        # Add close button
+        # Add heavenly close button
         self.close_btn = QPushButton("✕")
-        self.close_btn.setFixedSize(25, 25)
+        self.close_btn.setFixedSize(30, 30)
         self.close_btn.setStyleSheet("""
             QPushButton {
-                background-color: #e74c3c;
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #FFB6C1, stop: 1 #FF69B4);
                 color: white;
-                border: none;
-                border-radius: 12px;
-                font-size: 14px;
+                border: 2px solid rgba(255, 255, 255, 0.7);
+                border-radius: 15px;
+                font-size: 16px;
                 font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #c0392b;
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #FFC0CB, stop: 1 #FF1493);
+                border: 2px solid rgba(255, 255, 255, 1.0);
             }
         """)
         self.close_btn.clicked.connect(self.close_application)
@@ -117,18 +127,20 @@ class CollapsibleSidebar(QMainWindow):
         header_layout.addStretch()
         header_layout.addWidget(self.close_btn)
         
-        # Status bar
+        # Heavenly status bar
         self.status_label = QLabel()
         self.status_label.setAlignment(Qt.AlignLeft)
         self.status_label.setStyleSheet("""
             QLabel {
-                background-color: #ecf0f1;
-                border: 1px solid #bdc3c7;
-                border-radius: 5px;
-                padding: 8px;
-                color: #7f8c8d;
-                font-size: 11px;
-                margin-top: 5px;
+                background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
+                    stop: 0 rgba(255, 255, 255, 0.9), stop: 1 rgba(173, 216, 230, 0.8));
+                border: 2px solid rgba(176, 224, 230, 0.8);
+                border-radius: 10px;
+                padding: 10px;
+                color: #4682B4;
+                font-size: 12px;
+                font-weight: bold;
+                margin-top: 8px;
             }
         """)
         self.update_status_bar()
@@ -138,47 +150,56 @@ class CollapsibleSidebar(QMainWindow):
         
         layout.addWidget(top_section)
         
-        # Add a separator line
+        # Add heavenly separator line
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
-        separator.setStyleSheet("color: #bdc3c7;")
+        separator.setStyleSheet("""
+            QFrame {
+                color: rgba(135, 206, 235, 0.6);
+                background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
+                    stop: 0 transparent, stop: 0.5 rgba(135, 206, 235, 0.8), stop: 1 transparent);
+                border: none;
+                height: 2px;
+                margin: 10px 20px;
+            }
+        """)
         layout.addWidget(separator)
         
         # Add stretch to center the buttons vertically
         layout.addStretch()
         
-        # Create buttons
+        # Create heavenly buttons without emojis
         self.face_tracking_btn = self.create_toggle_button(
             "Face Tracking", 
-            "#3498db", 
-            "#2980b9",
-            "🎯",
+            "#87CEEB",  # Sky blue
+            "#4682B4",  # Steel blue
+            "",
             'face_tracking'
         )
         self.colorblind_btn = self.create_toggle_button(
             "Colorblind Mode", 
-            "#e74c3c", 
-            "#c0392b",
-            "👁️",
+            "#DDA0DD",  # Plum
+            "#BA55D3",  # Medium orchid
+            "",
             'colorblind'
         )
         self.ai_agent_btn = self.create_toggle_button(
             "AI Agent", 
-            "#2ecc71", 
-            "#27ae60",
-            "🤖",
+            "#FFE4B5",  # Moccasin
+            "#DEB887",  # Burlywood
+            "",
             'ai_agent'
         )
         self.voice_btn = self.create_toggle_button(
             "Voice Detection", 
-            "#f39c12",  # Orange for normal
-            "#e67e22",  # Darker orange for active
-            "🎤",      # Microphone emoji
+            "#F0E68C",  # Khaki (soft yellow)
+            "#DAA520",  # Goldenrod
+            "",
             'voice'
         )
         # Add voice button state and color to button_states and button_colors
         self.button_states['voice'] = False
-        self.button_colors['voice'] = '#f39c12'
+        self.button_colors['voice'] = '#F0E68C'
         
         # Add buttons to layout
         layout.addWidget(self.face_tracking_btn)
@@ -189,7 +210,7 @@ class CollapsibleSidebar(QMainWindow):
         # Add stretch to center the buttons vertically
         layout.addStretch()
         
-        # Create chat interface (initially hidden)
+        # Create heavenly chat interface (initially hidden)
         self.chat_widget = self.create_chat_interface()
         self.chat_widget.setVisible(False)
         layout.addWidget(self.chat_widget)
@@ -219,12 +240,13 @@ class CollapsibleSidebar(QMainWindow):
         # Initially expanded
         self.is_expanded = True
         
-        # Set application stylesheet
+        # Set heavenly application stylesheet
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #f8f9fa;
-                border: 2px solid #bdc3c7;
-                border-radius: 10px;
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #E6F3FF, stop: 0.3 #B3E0FF, stop: 0.7 #87CEEB, stop: 1 #B0E0E6);
+                border: 3px solid rgba(255, 255, 255, 0.8);
+                border-radius: 20px;
             }
         """)
         
@@ -235,10 +257,11 @@ class CollapsibleSidebar(QMainWindow):
         self.toggle_btn.setMouseTracking(True)
     
     def create_toggle_button(self, text, color, active_color, emoji, state_key):
-        """Create a toggle button that can be activated/deactivated"""
-        btn = QPushButton(f"{emoji}  {text}")
-        btn.setMinimumHeight(50)
-        btn.setFont(QFont("Arial", 11, QFont.Bold))
+        """Create a heavenly toggle button with cloud-like effects"""
+        display_text = f"{emoji} {text}" if emoji else text
+        btn = QPushButton(display_text)
+        btn.setMinimumHeight(60)
+        btn.setFont(QFont("Segoe UI", 14, QFont.Bold))
         btn.setCheckable(True)  # Make button toggleable
         
         # Store the colors and state key
@@ -262,10 +285,11 @@ class CollapsibleSidebar(QMainWindow):
         chat_container.setFixedHeight(self.chat_height)
         chat_container.setStyleSheet("""
             QWidget {
-                background-color: #ffffff;
-                border: 2px solid #2ecc71;
-                border-radius: 8px;
-                margin: 5px;
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 rgba(255, 255, 255, 0.95), stop: 1 rgba(173, 216, 230, 0.3));
+                border: 3px solid rgba(135, 206, 235, 0.8);
+                border-radius: 15px;
+                margin: 8px;
             }
         """)
         
@@ -273,10 +297,15 @@ class CollapsibleSidebar(QMainWindow):
         chat_layout.setContentsMargins(10, 10, 10, 10)
         chat_layout.setSpacing(8)
         
-        # Chat header
-        chat_header = QLabel("🤖 AI Assistant")
-        chat_header.setFont(QFont("Arial", 12, QFont.Bold))
-        chat_header.setStyleSheet("color: #2ecc71; margin-bottom: 5px; border: none;")
+        # Heavenly chat header
+        chat_header = QLabel(" AI Assistant ")
+        chat_header.setFont(QFont("Segoe UI", 14, QFont.Bold))
+        chat_header.setStyleSheet("""
+            color: #4682B4; 
+            margin-bottom: 8px; 
+            border: none;
+            text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.8);
+        """)
         chat_layout.addWidget(chat_header)
         
         # Chat display area
@@ -285,12 +314,14 @@ class CollapsibleSidebar(QMainWindow):
         self.chat_display.setMaximumHeight(180)
         self.chat_display.setStyleSheet("""
             QTextEdit {
-                background-color: #f8f9fa;
-                border: 1px solid #dee2e6;
-                border-radius: 5px;
-                padding: 8px;
-                font-size: 11px;
-                color: #495057;
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 rgba(240, 248, 255, 0.95), stop: 1 rgba(224, 255, 255, 0.8));
+                border: 2px solid rgba(176, 224, 230, 0.6);
+                border-radius: 10px;
+                padding: 12px;
+                font-size: 12px;
+                color: #4682B4;
+                font-family: 'Segoe UI';
             }
         """)
         self.chat_display.setPlaceholderText("AI responses will appear here...")
@@ -303,39 +334,50 @@ class CollapsibleSidebar(QMainWindow):
         self.chat_input.setPlaceholderText("Type your message here...")
         self.chat_input.setStyleSheet("""
             QLineEdit {
-                background-color: #ffffff;
-                border: 2px solid #dee2e6;
-                border-radius: 5px;
-                padding: 8px;
-                font-size: 11px;
-                color: #212529;
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 rgba(255, 255, 255, 0.95), stop: 1 rgba(240, 248, 255, 0.8));
+                border: 2px solid rgba(135, 206, 235, 0.5);
+                border-radius: 10px;
+                padding: 12px;
+                font-size: 12px;
+                color: #4682B4;
+                font-family: 'Segoe UI';
             }
             QLineEdit:focus {
-                border-color: #2ecc71;
-                background-color: #ffffff;
+                border-color: #87CEEB;
+                background: rgba(255, 255, 255, 1.0);
             }
         """)
         self.chat_input.returnPressed.connect(self.send_message)
         
         self.chat_voice_btn = self.create_toggle_button(
             "🎤",
-            "#f39c12",  # Orange for normal
-            "#e67e22",  # Darker orange for active
-            "",         # (emoji already in text)
+            "#F0E68C",  # Khaki to match main voice button
+            "#DAA520",  # Goldenrod to match main voice button
+            "",         # No additional emoji
             'voice'     # <-- same state_key as the main mic
         )
         self.chat_voice_btn.setFixedSize(35, 35)
         self.chat_voice_btn.setToolTip("Voice input")
         self.chat_voice_btn.setStyleSheet("""
             QPushButton {
-                background-color: #6c757d;
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #F0E68C, stop: 1 #DAA520);
                 color: white;
-                border: none;
-                border-radius: 5px;
-                font-size: 14px;
+                border: 2px solid rgba(255, 255, 255, 0.6);
+                border-radius: 10px;
+                font-size: 16px;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
             }
-            QPushButton:hover { background-color: #5a6268; }
-            QPushButton:pressed { background-color: #e74c3c; }
+            QPushButton:hover { 
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #F5F5DC, stop: 1 #B8860B);
+                border: 2px solid rgba(255, 255, 255, 1.0);
+            }
+            QPushButton:pressed { 
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #FFE4B5, stop: 1 #CD853F);
+            }
         """)
 
         
@@ -343,19 +385,25 @@ class CollapsibleSidebar(QMainWindow):
         send_btn.setFixedWidth(60)
         send_btn.setStyleSheet("""
             QPushButton {
-                background-color: #2ecc71;
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #87CEEB, stop: 1 #4682B4);
                 color: white;
-                border: none;
-                border-radius: 5px;
-                padding: 8px;
-                font-size: 11px;
+                border: 2px solid rgba(255, 255, 255, 0.7);
+                border-radius: 10px;
+                padding: 10px;
+                font-size: 12px;
                 font-weight: bold;
+                font-family: 'Segoe UI';
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
             }
             QPushButton:hover {
-                background-color: #27ae60;
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #98D4EB, stop: 1 #5A9BD4);
+                border: 2px solid rgba(255, 255, 255, 1.0);
             }
             QPushButton:pressed {
-                background-color: #229954;
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 #6495ED, stop: 1 #4169E1);
             }
         """)
         send_btn.clicked.connect(self.send_message)
@@ -378,12 +426,14 @@ class CollapsibleSidebar(QMainWindow):
             self.chat_input.setPlaceholderText("🎤 Listening... (Click mic again to stop)")
             self.chat_input.setStyleSheet("""
                 QLineEdit {
-                    background-color: #fff3cd;
-                    border: 2px solid #ffc107;
-                    border-radius: 5px;
-                    padding: 8px;
-                    font-size: 11px;
-                    color: #212529;
+                    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                        stop: 0 rgba(255, 255, 224, 0.9), stop: 1 rgba(255, 215, 0, 0.3));
+                    border: 3px solid rgba(255, 215, 0, 0.8);
+                    border-radius: 10px;
+                    padding: 12px;
+                    font-size: 12px;
+                    color: #B8860B;
+                    font-family: 'Segoe UI';
                 }
             """)
             print("Voice recording started...")
@@ -394,16 +444,18 @@ class CollapsibleSidebar(QMainWindow):
             self.chat_input.setPlaceholderText("Type your message here...")
             self.chat_input.setStyleSheet("""
                 QLineEdit {
-                    background-color: #ffffff;
-                    border: 2px solid #dee2e6;
-                    border-radius: 5px;
-                    padding: 8px;
-                    font-size: 11px;
-                    color: #212529;
+                    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                        stop: 0 rgba(255, 255, 255, 0.95), stop: 1 rgba(240, 248, 255, 0.8));
+                    border: 2px solid rgba(135, 206, 235, 0.5);
+                    border-radius: 10px;
+                    padding: 12px;
+                    font-size: 12px;
+                    color: #4682B4;
+                    font-family: 'Segoe UI';
                 }
                 QLineEdit:focus {
-                    border-color: #2ecc71;
-                    background-color: #ffffff;
+                    border-color: #87CEEB;
+                    background: rgba(255, 255, 255, 1.0);
                 }
             """)
             
@@ -463,26 +515,33 @@ class CollapsibleSidebar(QMainWindow):
         print(f"HALO response: {ai_response}")
 
     def update_button_style(self, btn):
-        """Update button style based on its checked state"""
+        """Update button style with heavenly cloud-like effects and dark text"""
         if btn.isChecked():
-            bg_color = btn.active_color
-            border_style = "border: 2px solid #ffffff;"
+            bg_gradient = f"qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 {btn.active_color}, stop: 1 {btn.normal_color})"
+            border_style = "border: 3px solid rgba(255, 255, 255, 0.9);"
+            text_color = "#2c3e50"  # Dark blue-gray for better contrast
         else:
-            bg_color = btn.normal_color
-            border_style = "border: none;"
+            bg_gradient = f"qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 {btn.normal_color}, stop: 1 rgba(255, 255, 255, 0.3))"
+            border_style = "border: 2px solid rgba(255, 255, 255, 0.6);"
+            text_color = "#34495e"  # Darker gray for inactive state
             
         btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {bg_color};
-                color: white;
+                background: {bg_gradient};
+                color: {text_color};
                 {border_style}
-                border-radius: 8px;
-                padding: 12px;
-                font-size: 12px;
+                border-radius: 15px;
+                padding: 18px;
+                font-size: 15px;
                 font-weight: bold;
+                text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.8);
+                letter-spacing: 1px;
             }}
             QPushButton:hover {{
-                background-color: {btn.active_color};
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 {btn.active_color}, stop: 1 rgba(255, 255, 255, 0.5));
+                border: 3px solid rgba(255, 255, 255, 1.0);
+                color: #1e3a8a;
+                transform: translateY(-2px);
             }}
         """)
 
@@ -594,17 +653,19 @@ class CollapsibleSidebar(QMainWindow):
         else:
             self.chat_display.clear()
     
-    def update_status(self, message, color="#7f8c8d"):
-        """Update the status label with a message and color"""
+    def update_status(self, message, color="#4682B4"):
+        """Update the status label with heavenly styling"""
         self.status_label.setText(message)
         self.status_label.setStyleSheet(f"""
             QLabel {{
-                background-color: #ecf0f1;
-                border: 1px solid #bdc3c7;
-                border-radius: 5px;
-                padding: 6px;
+                background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
+                    stop: 0 rgba(255, 255, 255, 0.9), stop: 1 rgba(173, 216, 230, 0.8));
+                border: 2px solid rgba(176, 224, 230, 0.8);
+                border-radius: 10px;
+                padding: 10px;
                 color: {color};
-                font-size: 10px;
+                font-size: 12px;
+                font-weight: bold;
             }}
         """)
     
