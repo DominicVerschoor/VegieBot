@@ -1,7 +1,7 @@
 import sys
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                                QPushButton, QLabel, QFrame, QHBoxLayout, QTextEdit, 
-                               QLineEdit, QScrollArea, QSizePolicy)
+                               QLineEdit, QScrollArea, QSizePolicy, QCheckBox)
 from PySide6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QTimer, QRect
 from PySide6.QtGui import QFont, QPalette, QColor
 import json
@@ -59,8 +59,7 @@ class CollapsibleSidebar(QMainWindow):
         self.toggle_btn.setFixedSize(35, 90)
         self.toggle_btn.setStyleSheet("""
             QPushButton {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #87CEEB, stop: 1 #4682B4);
+                background: #87CEEB;
                 color: white;
                 border: 2px solid rgba(255, 255, 255, 0.6);
                 font-size: 20px;
@@ -69,8 +68,7 @@ class CollapsibleSidebar(QMainWindow):
                 border-bottom-left-radius: 15px;
             }
             QPushButton:hover {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #98D4EB, stop: 1 #5A9BD4);
+                background: #4682B4;
                 border: 2px solid rgba(255, 255, 255, 0.9);
             }
         """)
@@ -107,8 +105,7 @@ class CollapsibleSidebar(QMainWindow):
         self.close_btn.setFixedSize(30, 30)
         self.close_btn.setStyleSheet("""
             QPushButton {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #FFB6C1, stop: 1 #FF69B4);
+                background: #FF69B4;
                 color: white;
                 border: 2px solid rgba(255, 255, 255, 0.7);
                 border-radius: 15px;
@@ -116,8 +113,7 @@ class CollapsibleSidebar(QMainWindow):
                 font-weight: bold;
             }
             QPushButton:hover {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #FFC0CB, stop: 1 #FF1493);
+                background: #FF1493;
                 border: 2px solid rgba(255, 255, 255, 1.0);
             }
         """)
@@ -132,8 +128,7 @@ class CollapsibleSidebar(QMainWindow):
         self.status_label.setAlignment(Qt.AlignLeft)
         self.status_label.setStyleSheet("""
             QLabel {
-                background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
-                    stop: 0 rgba(255, 255, 255, 0.9), stop: 1 rgba(173, 216, 230, 0.8));
+                background: rgba(173, 216, 230, 0.3);
                 border: 2px solid rgba(176, 224, 230, 0.8);
                 border-radius: 10px;
                 padding: 10px;
@@ -156,8 +151,7 @@ class CollapsibleSidebar(QMainWindow):
         separator.setStyleSheet("""
             QFrame {
                 color: rgba(135, 206, 235, 0.6);
-                background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
-                    stop: 0 transparent, stop: 0.5 rgba(135, 206, 235, 0.8), stop: 1 transparent);
+                background: rgba(135, 206, 235, 0.8);
                 border: none;
                 height: 2px;
                 margin: 10px 20px;
@@ -168,29 +162,29 @@ class CollapsibleSidebar(QMainWindow):
         # Add stretch to center the buttons vertically
         layout.addStretch()
         
-        # Create heavenly buttons without emojis
-        self.face_tracking_btn = self.create_toggle_button(
+        # Create toggle switches without emojis
+        self.face_tracking_btn = self.create_toggle_switch(
             "Face Tracking", 
             "#87CEEB",  # Sky blue
             "#4682B4",  # Steel blue
             "",
             'face_tracking'
         )
-        self.colorblind_btn = self.create_toggle_button(
+        self.colorblind_btn = self.create_toggle_switch(
             "Colorblind Mode", 
             "#DDA0DD",  # Plum
             "#BA55D3",  # Medium orchid
             "",
             'colorblind'
         )
-        self.ai_agent_btn = self.create_toggle_button(
+        self.ai_agent_btn = self.create_toggle_switch(
             "AI Agent", 
             "#FFE4B5",  # Moccasin
             "#DEB887",  # Burlywood
             "",
             'ai_agent'
         )
-        self.voice_btn = self.create_toggle_button(
+        self.voice_btn = self.create_toggle_switch(
             "Voice Detection", 
             "#F0E68C",  # Khaki (soft yellow)
             "#DAA520",  # Goldenrod
@@ -240,11 +234,10 @@ class CollapsibleSidebar(QMainWindow):
         # Initially expanded
         self.is_expanded = True
         
-        # Set heavenly application stylesheet
+        # Set application stylesheet with solid white background
         self.setStyleSheet("""
             QMainWindow {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #E6F3FF, stop: 0.3 #B3E0FF, stop: 0.7 #87CEEB, stop: 1 #B0E0E6);
+                background: white;
                 border: 3px solid rgba(255, 255, 255, 0.8);
                 border-radius: 20px;
             }
@@ -256,23 +249,22 @@ class CollapsibleSidebar(QMainWindow):
         self.setMouseTracking(True)
         self.toggle_btn.setMouseTracking(True)
     
-    def create_toggle_button(self, text, color, active_color, emoji, state_key):
-        """Create a heavenly toggle button with cloud-like effects"""
+    def create_toggle_switch(self, text, color, active_color, emoji, state_key):
+        """Create a toggle switch with solid colors"""
         display_text = f"{emoji} {text}" if emoji else text
-        btn = QPushButton(display_text)
-        btn.setMinimumHeight(60)
-        btn.setFont(QFont("Segoe UI", 14, QFont.Bold))
-        btn.setCheckable(True)  # Make button toggleable
+        switch = QCheckBox(display_text)
+        switch.setMinimumHeight(60)
+        switch.setFont(QFont("Segoe UI", 14, QFont.Bold))
         
         # Store the colors and state key
-        btn.normal_color = color
-        btn.active_color = active_color
-        btn.state_key = state_key
+        switch.normal_color = color
+        switch.active_color = active_color
+        switch.state_key = state_key
         
-        self.update_button_style(btn)
-        btn.clicked.connect(lambda: self.on_button_toggled(btn))
+        self.update_switch_style(switch)
+        switch.toggled.connect(lambda checked: self.on_switch_toggled(switch, checked))
         
-        return btn
+        return switch
     
     def close_application(self):
         """Close the entire application"""
@@ -285,8 +277,7 @@ class CollapsibleSidebar(QMainWindow):
         chat_container.setFixedHeight(self.chat_height)
         chat_container.setStyleSheet("""
             QWidget {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 rgba(255, 255, 255, 0.95), stop: 1 rgba(173, 216, 230, 0.3));
+                background: rgba(255, 255, 255, 0.95);
                 border: 3px solid rgba(135, 206, 235, 0.8);
                 border-radius: 15px;
                 margin: 8px;
@@ -311,128 +302,132 @@ class CollapsibleSidebar(QMainWindow):
         # Chat display area
         self.chat_display = QTextEdit()
         self.chat_display.setReadOnly(True)
-        self.chat_display.setMaximumHeight(180)
+        self.chat_display.setMaximumHeight(60)
         self.chat_display.setStyleSheet("""
             QTextEdit {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 rgba(240, 248, 255, 0.95), stop: 1 rgba(224, 255, 255, 0.8));
+                background: white;
                 border: 2px solid rgba(176, 224, 230, 0.6);
                 border-radius: 10px;
-                padding: 12px;
-                font-size: 12px;
-                color: #4682B4;
+                padding: 8px;
+                font-size: 13px;
+                color: black;
                 font-family: 'Segoe UI';
             }
         """)
         self.chat_display.setPlaceholderText("AI responses will appear here...")
         chat_layout.addWidget(self.chat_display)
         
-        # Input area with voice button
-        input_layout = QHBoxLayout()
-        
-        self.chat_input = QLineEdit()
+        # Input area - separate rows for text input and buttons
+        # First row: text input (larger)
+        self.chat_input = QTextEdit()
         self.chat_input.setPlaceholderText("Type your message here...")
         self.chat_input.setStyleSheet("""
-            QLineEdit {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 rgba(255, 255, 255, 0.95), stop: 1 rgba(240, 248, 255, 0.8));
-                border: 2px solid rgba(135, 206, 235, 0.5);
-                border-radius: 10px;
-                padding: 12px;
-                font-size: 12px;
-                color: #4682B4;
-                font-family: 'Segoe UI';
+            QTextEdit {
+                background: #FFFFFF;
+                border: 2px solid #87CEEB;
+                border-radius: 5px;
+                padding: 5px;
+                font-size: 14px;
+                color: #000000;
+                font-family: Arial, sans-serif;
+                font-weight: normal;
             }
-            QLineEdit:focus {
-                border-color: #87CEEB;
-                background: rgba(255, 255, 255, 1.0);
+            QTextEdit:focus {
+                border-color: #4682B4;
+                background: #FFFFFF;
             }
         """)
-        self.chat_input.returnPressed.connect(self.send_message)
+        self.chat_input.setMaximumHeight(60)
+        self.chat_input.setMinimumHeight(40)
+        # Connect Enter key to send message
+        def on_key_press(event):
+            if event.key() == Qt.Key_Return and not event.modifiers():
+                self.send_message()
+            else:
+                QTextEdit.keyPressEvent(self.chat_input, event)
+        self.chat_input.keyPressEvent = on_key_press
         
-        self.chat_voice_btn = self.create_toggle_button(
-            "🎤",
-            "#F0E68C",  # Khaki to match main voice button
-            "#DAA520",  # Goldenrod to match main voice button
-            "",         # No additional emoji
-            'voice'     # <-- same state_key as the main mic
-        )
-        self.chat_voice_btn.setFixedSize(35, 35)
+        self.chat_voice_btn = QPushButton("🎤")
+        self.chat_voice_btn.setFixedSize(70, 70)
+        self.chat_voice_btn.setCheckable(True)
         self.chat_voice_btn.setToolTip("Voice input")
         self.chat_voice_btn.setStyleSheet("""
             QPushButton {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #F0E68C, stop: 1 #DAA520);
+                background: #F0E68C;
                 color: white;
-                border: 2px solid rgba(255, 255, 255, 0.6);
-                border-radius: 10px;
-                font-size: 16px;
-                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+                border: 2px solid rgba(255, 255, 255, 0.7);
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: bold;
             }
-            QPushButton:hover { 
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #F5F5DC, stop: 1 #B8860B);
+            QPushButton:checked {
+                background: #DAA520;
+                border: 2px solid rgba(255, 255, 255, 0.9);
+            }
+            QPushButton:hover {
+                background: #DAA520;
                 border: 2px solid rgba(255, 255, 255, 1.0);
-            }
-            QPushButton:pressed { 
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #FFE4B5, stop: 1 #CD853F);
             }
         """)
 
         
         send_btn = QPushButton("Send")
-        send_btn.setFixedWidth(60)
+        send_btn.setFixedWidth(100)
         send_btn.setStyleSheet("""
             QPushButton {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #87CEEB, stop: 1 #4682B4);
+                background: #87CEEB;
                 color: white;
                 border: 2px solid rgba(255, 255, 255, 0.7);
                 border-radius: 10px;
-                padding: 10px;
+                padding: 5px 8px;
                 font-size: 12px;
                 font-weight: bold;
                 font-family: 'Segoe UI';
                 text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+                min-height: 20px;
             }
             QPushButton:hover {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #98D4EB, stop: 1 #5A9BD4);
+                background: #4682B4;
                 border: 2px solid rgba(255, 255, 255, 1.0);
             }
             QPushButton:pressed {
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                    stop: 0 #6495ED, stop: 1 #4169E1);
+                background: #4169E1;
             }
         """)
         send_btn.clicked.connect(self.send_message)
         
+        # Add text input to chat layout
+        chat_layout.addWidget(self.chat_input)
         
-        input_layout.addWidget(self.chat_input)
-        input_layout.addWidget(self.chat_voice_btn)
-        input_layout.addWidget(send_btn)
-        chat_layout.addLayout(input_layout)
+        # Second row: buttons with reduced spacing
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(5)  # Reduce spacing between buttons
+        button_layout.addStretch()  # Push buttons to right
+        button_layout.addWidget(self.chat_voice_btn)
+        button_layout.addWidget(send_btn)
         
-        self.chat_voice_btn.clicked.connect(self.toggle_voice_input)
+        chat_layout.addLayout(button_layout)
+        
+        self.chat_voice_btn.toggled.connect(self.toggle_voice_input)
+        # Store state key for consistency with other switches
+        self.chat_voice_btn.state_key = 'voice'
         
         return chat_container
     
-    def toggle_voice_input(self):
-        """Toggle voice input recording"""
-        if self.is_recording:
+    def toggle_voice_input(self, checked):
+        """Toggle voice input recording based on button state"""
+        if checked:
             # Start recording
             self.is_recording = True
             self.chat_input.setPlaceholderText("🎤 Listening... (Click mic again to stop)")
             self.chat_input.setStyleSheet("""
-                QLineEdit {
-                    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                        stop: 0 rgba(255, 255, 224, 0.9), stop: 1 rgba(255, 215, 0, 0.3));
-                    border: 3px solid rgba(255, 215, 0, 0.8);
-                    border-radius: 10px;
-                    padding: 12px;
-                    font-size: 12px;
-                    color: #B8860B;
+                QTextEdit {
+                    background: #FFFACD;
+                    border: 3px solid #FFD700;
+                    border-radius: 8px;
+                    padding: 8px;
+                    font-size: 13px;
+                    color: black;
                     font-family: 'Segoe UI';
                 }
             """)
@@ -443,19 +438,18 @@ class CollapsibleSidebar(QMainWindow):
             self.is_recording = False
             self.chat_input.setPlaceholderText("Type your message here...")
             self.chat_input.setStyleSheet("""
-                QLineEdit {
-                    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                        stop: 0 rgba(255, 255, 255, 0.95), stop: 1 rgba(240, 248, 255, 0.8));
+                QTextEdit {
+                    background: white;
                     border: 2px solid rgba(135, 206, 235, 0.5);
-                    border-radius: 10px;
-                    padding: 12px;
-                    font-size: 12px;
-                    color: #4682B4;
+                    border-radius: 8px;
+                    padding: 8px;
+                    font-size: 13px;
+                    color: black;
                     font-family: 'Segoe UI';
                 }
-                QLineEdit:focus {
+                QTextEdit:focus {
                     border-color: #87CEEB;
-                    background: rgba(255, 255, 255, 1.0);
+                    background: white;
                 }
             """)
             
@@ -463,8 +457,8 @@ class CollapsibleSidebar(QMainWindow):
 
     def handle_voice_result(self, result_json: str):
         text = f'{json.loads(result_json).get("text", "")}. '
-        text = self.chat_input.text() + text
-        self.chat_input.setText(text)       
+        current_text = self.chat_input.toPlainText()
+        self.chat_input.setPlainText(current_text + text)       
 
     def update_status_bar(self):
         """Update the status bar with active features and their colors"""
@@ -486,7 +480,7 @@ class CollapsibleSidebar(QMainWindow):
         
     def send_message(self):
         """Handle sending a message"""
-        message = self.chat_input.text().strip()
+        message = self.chat_input.toPlainText().strip()
         if not message:
             return
         
@@ -514,64 +508,77 @@ class CollapsibleSidebar(QMainWindow):
         print(f"User message: {message}")
         print(f"HALO response: {ai_response}")
 
-    def update_button_style(self, btn):
-        """Update button style with heavenly cloud-like effects and dark text"""
-        if btn.isChecked():
-            bg_gradient = f"qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 {btn.active_color}, stop: 1 {btn.normal_color})"
-            border_style = "border: 3px solid rgba(255, 255, 255, 0.9);"
-            text_color = "#2c3e50"  # Dark blue-gray for better contrast
+    def update_switch_style(self, switch):
+        """Update toggle switch style with solid colors based on checked/unchecked state"""
+        if switch.isChecked():
+            # Enabled state - bright solid color
+            bg_color = switch.active_color
+            text_color = "white"  # White text for enabled state
         else:
-            bg_gradient = f"qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 {btn.normal_color}, stop: 1 rgba(255, 255, 255, 0.3))"
-            border_style = "border: 2px solid rgba(255, 255, 255, 0.6);"
-            text_color = "#34495e"  # Darker gray for inactive state
+            # Disabled state - muted/gray color
+            bg_color = "#CCCCCC"  # Gray for disabled state
+            text_color = "#666666"  # Dark gray text for disabled state
             
-        btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {bg_gradient};
+        switch.setStyleSheet(f"""
+            QCheckBox {{
+                background: {bg_color};
                 color: {text_color};
-                {border_style}
+                border: 2px solid rgba(255, 255, 255, 0.8);
                 border-radius: 15px;
                 padding: 18px;
                 font-size: 15px;
                 font-weight: bold;
-                text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.8);
                 letter-spacing: 1px;
+                min-height: 25px;
             }}
-            QPushButton:hover {{
-                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 {btn.active_color}, stop: 1 rgba(255, 255, 255, 0.5));
+            QCheckBox:hover {{
+                background: {switch.active_color if switch.isChecked() else '#DDDDDD'};
                 border: 3px solid rgba(255, 255, 255, 1.0);
-                color: #1e3a8a;
-                transform: translateY(-2px);
+            }}
+            QCheckBox::indicator {{
+                width: 20px;
+                height: 20px;
+                border-radius: 10px;
+                border: 2px solid white;
+                background: {'#2E8B57' if switch.isChecked() else '#CCCCCC'};
+                margin-right: 8px;
+            }}
+            QCheckBox::indicator:checked {{
+                background: #2E8B57;
+            }}
+            QCheckBox::indicator:unchecked {{
+                background: #CCCCCC;
             }}
         """)
 
-    def on_button_toggled(self, btn):
-        """Handle any toggle button click."""
+    def on_switch_toggled(self, switch, checked):
+        """Handle any toggle switch change."""
         # 1) Update state
-        key = btn.state_key               # e.g. 'face_tracking', 'voice', 'ai_agent'
-        state = btn.isChecked()
-        self.button_states[key] = state
+        key = switch.state_key               # e.g. 'face_tracking', 'voice', 'ai_agent'
+        self.button_states[key] = checked
         
         if key == 'voice':
-            # main mic: self.voice_btn
-            # tiny mic: self.chat_voice_btn (may not exist before chat is shown)
+            # main mic: self.voice_btn (toggle switch)
+            # tiny mic: self.chat_voice_btn (simple button - may not exist before chat is shown)
             for other in (getattr(self, 'voice_btn', None), getattr(self, 'chat_voice_btn', None)):
-                if other is None or other is btn:
+                if other is None or other is switch:
                     continue
                 other.blockSignals(True)
-                other.setChecked(state)
-                self.update_button_style(other)
+                other.setChecked(checked)
+                # Only update switch style for the main voice button (toggle switch)
+                if hasattr(other, 'state_key') and other != self.chat_voice_btn:
+                    self.update_switch_style(other)
                 other.blockSignals(False)
 
         # 2) Route to the right start/stop
-        self._handle_toggle(key, state)
+        self._handle_toggle(key, checked)
 
         # 3) UI updates (once)
-        self.update_button_style(btn)
+        self.update_switch_style(switch)
         self.update_status_bar()
 
         # 4) Log
-        print(f"{btn.text()} {'activated' if state else 'deactivated'}")
+        print(f"{switch.text()} {'activated' if checked else 'deactivated'}")
         active = [k.replace('_', ' ').title() for k, v in self.button_states.items() if v]
         print(f"Current active features: {active}")
 
@@ -649,7 +656,7 @@ class CollapsibleSidebar(QMainWindow):
         self.chat_widget.setVisible(show_chat)
         
         if show_chat:
-            self.chat_display.setPlainText("AI: Hello! I'm your AI assistant. How can I help you today?")
+            self.chat_display.setPlainText("AI: Hello!\nHow can I help you today?")
         else:
             self.chat_display.clear()
     
@@ -658,8 +665,7 @@ class CollapsibleSidebar(QMainWindow):
         self.status_label.setText(message)
         self.status_label.setStyleSheet(f"""
             QLabel {{
-                background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
-                    stop: 0 rgba(255, 255, 255, 0.9), stop: 1 rgba(173, 216, 230, 0.8));
+                background: rgba(173, 216, 230, 0.3);
                 border: 2px solid rgba(176, 224, 230, 0.8);
                 border-radius: 10px;
                 padding: 10px;
