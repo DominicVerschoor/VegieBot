@@ -1,0 +1,215 @@
+/* Main Window Styling */
+QMainWindow {
+    background: white;
+    border: 3px solid rgba(255, 255, 255, 0.8);
+    border-radius: 20px;
+}
+
+/* Toggle Button */
+#toggle_btn {
+    background: #87CEEB;
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    font-size: 20px;
+    font-weight: bold;
+    border-top-left-radius: 15px;
+    border-bottom-left-radius: 15px;
+}
+
+#toggle_btn:hover {
+    background: #4682B4;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+}
+
+/* Title Label */
+#title_label {
+    color: #4682B4;
+}
+
+/* Close Button */
+#close_btn {
+    background: #FF69B4;
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 15px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#close_btn:hover {
+    background: #FF1493;
+    border: 2px solid rgba(255, 255, 255, 1.0);
+}
+
+/* Status Label */
+#status_label {
+    background: rgba(173, 216, 230, 0.3);
+    border: 2px solid rgba(176, 224, 230, 0.8);
+    border-radius: 10px;
+    padding: 10px;
+    color: #4682B4;
+    font-size: 12px;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+/* Separator */
+#separator {
+    color: rgba(135, 206, 235, 0.6);
+    background: rgba(135, 206, 235, 0.8);
+    border: none;
+    height: 2px;
+    margin: 10px 20px;
+}
+
+/* Chat Container */
+#chat_container {
+    background: rgba(255, 255, 255, 0.95);
+    border: 3px solid rgba(135, 206, 235, 0.8);
+    border-radius: 15px;
+    margin: 8px;
+}
+
+/* Chat Header */
+#chat_header {
+    color: #4682B4; 
+    margin-bottom: 8px; 
+    border: none;
+}
+
+/* Chat Display */
+#chat_display {
+    background: white;
+    border: 2px solid rgba(176, 224, 230, 0.6);
+    border-radius: 10px;
+    padding: 8px;
+    font-size: 13px;
+    color: black;
+    font-family: 'Segoe UI';
+}
+
+/* Chat Input - Default State */
+#chat_input {
+    background: #FFFFFF;
+    border: 2px solid #87CEEB;
+    border-radius: 5px;
+    padding: 5px;
+    font-size: 14px;
+    color: #000000;
+    font-family: Arial, sans-serif;
+    font-weight: normal;
+}
+
+#chat_input:focus {
+    border-color: #4682B4;
+    background: #FFFFFF;
+}
+
+/* Chat Input - Recording State */
+#chat_input_recording {
+    background: #FFFACD;
+    border: 3px solid #FFD700;
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 13px;
+    color: black;
+    font-family: 'Segoe UI';
+}
+
+/* Chat Input - Stopped Recording State */
+#chat_input_stopped {
+    background: white;
+    border: 2px solid rgba(135, 206, 235, 0.5);
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 13px;
+    color: black;
+    font-family: 'Segoe UI';
+}
+
+#chat_input_stopped:focus {
+    border-color: #87CEEB;
+    background: white;
+}
+
+/* Chat Voice Button */
+#chat_voice_btn {
+    background: #F0E68C;
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+#chat_voice_btn:checked {
+    background: #DAA520;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+}
+
+#chat_voice_btn:hover {
+    background: #DAA520;
+    border: 2px solid rgba(255, 255, 255, 1.0);
+}
+
+/* Send Button */
+#send_btn {
+    background: #87CEEB;
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 10px;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-weight: bold;
+    font-family: 'Segoe UI';
+    min-height: 20px;
+}
+
+#send_btn:hover {
+    background: #4682B4;
+    border: 2px solid rgba(255, 255, 255, 1.0);
+}
+
+#send_btn:pressed {
+    background: #4169E1;
+}
+
+/* Toggle Switches */
+QCheckBox {
+    background: #CCCCCC;
+    color: #666666;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 15px;
+    padding: 18px;
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    min-height: 25px;
+}
+
+QCheckBox:hover {
+    background: #DDDDDD;
+    border: 3px solid rgba(255, 255, 255, 1.0);
+}
+
+QCheckBox::indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    border: 2px solid white;
+    background: #CCCCCC;
+    margin-right: 8px;
+}
+
+QCheckBox::indicator:checked {
+    background: #2E8B57;
+}
+
+QCheckBox::indicator:unchecked {
+    background: #CCCCCC;
+}
+
+/* Active Toggle Switches (will be set dynamically) */
+QCheckBox:checked {
+    color: white;
+}

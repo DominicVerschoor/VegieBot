@@ -2,24 +2,72 @@ import sys
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                                QPushButton, QLabel, QFrame, QHBoxLayout, QTextEdit, 
                                QLineEdit, QScrollArea, QSizePolicy, QCheckBox)
-from PySide6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QTimer, QRect
+from PySide6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QTimer, QRect, QObject, Signal
 from PySide6.QtGui import QFont, QPalette, QColor
 import json
+import os
+import re
+try:
+    import pyautogui
+except ImportError:
+    print("Warning: pyautogui not installed. Voice mouse commands will not work.")
 
 from MonitorTracking import HeadMouseTracker
 from VoiceControl import VoskMicRecognizer
 from Chatbot import HaloChat
 
+#Please put future CSS changes in styles.qss
+
+class VoiceController(QObject):
+    """Thread-safe controller for voice commands using Qt signals"""
+    left_click_signal = Signal()
+    right_click_signal = Signal()
+    middle_click_signal = Signal()
+    shift_click_signal = Signal()
+    update_chat_input_signal = Signal(str)  # For adding text to chat input
+    
+    def __init__(self):
+        super().__init__()
+        # Connect signals to slot methods
+        self.left_click_signal.connect(self.do_left_click)
+        self.right_click_signal.connect(self.do_right_click)
+        self.middle_click_signal.connect(self.do_middle_click)
+        self.shift_click_signal.connect(self.do_shift_click)
+    
+    def do_left_click(self):
+        """Perform left click on main thread"""
+        if pyautogui:
+            pyautogui.click()
+    
+    def do_right_click(self):
+        """Perform right click on main thread"""
+        if pyautogui:
+            pyautogui.rightClick()
+    
+    def do_middle_click(self):
+        """Perform middle click on main thread"""
+        if pyautogui:
+            pyautogui.middleClick()
+    
+    def do_shift_click(self):
+        """Perform shift+click on main thread"""
+        if pyautogui:
+            pyautogui.keyDown('shift')
+            pyautogui.click()
+            pyautogui.keyUp('shift')
+
 class CollapsibleSidebar(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Vision & AI Control Panel")
+        self.setWindowTitle("HALO Control Panel - Drag to Move")
         self.expanded_width = 320
-        self.collapsed_width = 30
+        self.collapsed_width = 80  # Size for circular HALO button
         
-        # Get screen dimensions for full height coverage
+        # Get screen dimensions - leave space at top and bottom
         screen = QApplication.primaryScreen().availableGeometry()
-        self.base_height = screen.height()
+        self.margin_top = 50    # Space at top for browser tabs, etc.
+        self.margin_bottom = 50 # Space at bottom for taskbar, etc.
+        self.base_height = screen.height() - self.margin_top - self.margin_bottom
         self.chat_height = 300
         self.window_height = self.base_height
         
@@ -37,13 +85,13 @@ class CollapsibleSidebar(QMainWindow):
             'ai_agent': '#FFE4B5'        # Moccasin (soft golden)
         }
         
-        # Set window properties
+        # Set window properties - make it movable
         self.setFixedSize(self.expanded_width, self.window_height)
-        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)  # Removed FramelessWindowHint to make it movable
         
-        # Position window to cover entire right edge of screen
+        # Position window on right side with margins
         screen = QApplication.primaryScreen().availableGeometry()
-        self.move(screen.width() - self.expanded_width, 0)
+        self.move(screen.width() - self.expanded_width, self.margin_top)
         
         # Set up the main widget and layout
         main_widget = QWidget()
@@ -54,24 +102,13 @@ class CollapsibleSidebar(QMainWindow):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
         
-        # Create heavenly toggle button
-        self.toggle_btn = QPushButton("◀")
+        # Initially expanded (define this early)
+        self.is_expanded = True
+        
+        # Create sliding toggle button with arrow (restored)
+        self.toggle_btn = QPushButton("◀")  # Left arrow when expanded
+        self.toggle_btn.setObjectName("toggle_btn")
         self.toggle_btn.setFixedSize(35, 90)
-        self.toggle_btn.setStyleSheet("""
-            QPushButton {
-                background: #87CEEB;
-                color: white;
-                border: 2px solid rgba(255, 255, 255, 0.6);
-                font-size: 20px;
-                font-weight: bold;
-                border-top-left-radius: 15px;
-                border-bottom-left-radius: 15px;
-            }
-            QPushButton:hover {
-                background: #4682B4;
-                border: 2px solid rgba(255, 255, 255, 0.9);
-            }
-        """)
         self.toggle_btn.clicked.connect(self.toggle_sidebar)
         
         # Create content widget
@@ -93,30 +130,14 @@ class CollapsibleSidebar(QMainWindow):
         
         # Add heavenly title
         title_label = QLabel(" HALO ")
+        title_label.setObjectName("title_label")
         title_label.setAlignment(Qt.AlignLeft)
         title_label.setFont(QFont("Segoe UI", 18, QFont.Bold))
-        title_label.setStyleSheet("""
-            color: #4682B4;
-            text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.8);
-        """)
         
         # Add heavenly close button
         self.close_btn = QPushButton("✕")
+        self.close_btn.setObjectName("close_btn")
         self.close_btn.setFixedSize(30, 30)
-        self.close_btn.setStyleSheet("""
-            QPushButton {
-                background: #FF69B4;
-                color: white;
-                border: 2px solid rgba(255, 255, 255, 0.7);
-                border-radius: 15px;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background: #FF1493;
-                border: 2px solid rgba(255, 255, 255, 1.0);
-            }
-        """)
         self.close_btn.clicked.connect(self.close_application)
         
         header_layout.addWidget(title_label)
@@ -125,19 +146,8 @@ class CollapsibleSidebar(QMainWindow):
         
         # Heavenly status bar
         self.status_label = QLabel()
+        self.status_label.setObjectName("status_label")
         self.status_label.setAlignment(Qt.AlignLeft)
-        self.status_label.setStyleSheet("""
-            QLabel {
-                background: rgba(173, 216, 230, 0.3);
-                border: 2px solid rgba(176, 224, 230, 0.8);
-                border-radius: 10px;
-                padding: 10px;
-                color: #4682B4;
-                font-size: 12px;
-                font-weight: bold;
-                margin-top: 8px;
-            }
-        """)
         self.update_status_bar()
         
         top_layout.addLayout(header_layout)
@@ -147,16 +157,8 @@ class CollapsibleSidebar(QMainWindow):
         
         # Add heavenly separator line
         separator = QFrame()
+        separator.setObjectName("separator")
         separator.setFrameShape(QFrame.HLine)
-        separator.setStyleSheet("""
-            QFrame {
-                color: rgba(135, 206, 235, 0.6);
-                background: rgba(135, 206, 235, 0.8);
-                border: none;
-                height: 2px;
-                margin: 10px 20px;
-            }
-        """)
         layout.addWidget(separator)
         
         # Add stretch to center the buttons vertically
@@ -226,22 +228,17 @@ class CollapsibleSidebar(QMainWindow):
         self.chat_animation.setDuration(300)
         self.chat_animation.setEasingCurve(QEasingCurve.InOutQuad)
         
-        # Set up hover timer for auto-expand
-        self.hover_timer = QTimer()
-        self.hover_timer.setSingleShot(True)
-        self.hover_timer.timeout.connect(self.expand_sidebar)
         
-        # Initially expanded
-        self.is_expanded = True
+        # Initialize thread-safe voice controller
+        self.voice_controller = VoiceController()
+        # Connect the chat input signal
+        self.voice_controller.update_chat_input_signal.connect(self.update_chat_input_from_voice)
         
-        # Set application stylesheet with solid white background
-        self.setStyleSheet("""
-            QMainWindow {
-                background: white;
-                border: 3px solid rgba(255, 255, 255, 0.8);
-                border-radius: 20px;
-            }
-        """)
+        # Variables for drag functionality
+        self.drag_position = None
+        
+        # Load external stylesheet
+        self.load_stylesheet()
         
         self._start_chat()
         
@@ -274,15 +271,8 @@ class CollapsibleSidebar(QMainWindow):
     def create_chat_interface(self):
         """Create the chat interface widget"""
         chat_container = QWidget()
+        chat_container.setObjectName("chat_container")
         chat_container.setFixedHeight(self.chat_height)
-        chat_container.setStyleSheet("""
-            QWidget {
-                background: rgba(255, 255, 255, 0.95);
-                border: 3px solid rgba(135, 206, 235, 0.8);
-                border-radius: 15px;
-                margin: 8px;
-            }
-        """)
         
         chat_layout = QVBoxLayout(chat_container)
         chat_layout.setContentsMargins(10, 10, 10, 10)
@@ -290,53 +280,23 @@ class CollapsibleSidebar(QMainWindow):
         
         # Heavenly chat header
         chat_header = QLabel(" AI Assistant ")
+        chat_header.setObjectName("chat_header")
         chat_header.setFont(QFont("Segoe UI", 14, QFont.Bold))
-        chat_header.setStyleSheet("""
-            color: #4682B4; 
-            margin-bottom: 8px; 
-            border: none;
-            text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.8);
-        """)
         chat_layout.addWidget(chat_header)
         
         # Chat display area
         self.chat_display = QTextEdit()
+        self.chat_display.setObjectName("chat_display")
         self.chat_display.setReadOnly(True)
         self.chat_display.setMaximumHeight(60)
-        self.chat_display.setStyleSheet("""
-            QTextEdit {
-                background: white;
-                border: 2px solid rgba(176, 224, 230, 0.6);
-                border-radius: 10px;
-                padding: 8px;
-                font-size: 13px;
-                color: black;
-                font-family: 'Segoe UI';
-            }
-        """)
         self.chat_display.setPlaceholderText("AI responses will appear here...")
         chat_layout.addWidget(self.chat_display)
         
         # Input area - separate rows for text input and buttons
         # First row: text input (larger)
         self.chat_input = QTextEdit()
+        self.chat_input.setObjectName("chat_input")
         self.chat_input.setPlaceholderText("Type your message here...")
-        self.chat_input.setStyleSheet("""
-            QTextEdit {
-                background: #FFFFFF;
-                border: 2px solid #87CEEB;
-                border-radius: 5px;
-                padding: 5px;
-                font-size: 14px;
-                color: #000000;
-                font-family: Arial, sans-serif;
-                font-weight: normal;
-            }
-            QTextEdit:focus {
-                border-color: #4682B4;
-                background: #FFFFFF;
-            }
-        """)
         self.chat_input.setMaximumHeight(60)
         self.chat_input.setMinimumHeight(40)
         # Connect Enter key to send message
@@ -348,52 +308,15 @@ class CollapsibleSidebar(QMainWindow):
         self.chat_input.keyPressEvent = on_key_press
         
         self.chat_voice_btn = QPushButton("🎤")
+        self.chat_voice_btn.setObjectName("chat_voice_btn")
         self.chat_voice_btn.setFixedSize(70, 70)
         self.chat_voice_btn.setCheckable(True)
         self.chat_voice_btn.setToolTip("Voice input")
-        self.chat_voice_btn.setStyleSheet("""
-            QPushButton {
-                background: #F0E68C;
-                color: white;
-                border: 2px solid rgba(255, 255, 255, 0.7);
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: bold;
-            }
-            QPushButton:checked {
-                background: #DAA520;
-                border: 2px solid rgba(255, 255, 255, 0.9);
-            }
-            QPushButton:hover {
-                background: #DAA520;
-                border: 2px solid rgba(255, 255, 255, 1.0);
-            }
-        """)
 
         
         send_btn = QPushButton("Send")
+        send_btn.setObjectName("send_btn")
         send_btn.setFixedWidth(100)
-        send_btn.setStyleSheet("""
-            QPushButton {
-                background: #87CEEB;
-                color: white;
-                border: 2px solid rgba(255, 255, 255, 0.7);
-                border-radius: 10px;
-                padding: 5px 8px;
-                font-size: 12px;
-                font-weight: bold;
-                font-family: 'Segoe UI';
-                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-                min-height: 20px;
-            }
-            QPushButton:hover {
-                background: #4682B4;
-                border: 2px solid rgba(255, 255, 255, 1.0);
-            }
-            QPushButton:pressed {
-                background: #4169E1;
-            }
-        """)
         send_btn.clicked.connect(self.send_message)
         
         # Add text input to chat layout
@@ -420,45 +343,68 @@ class CollapsibleSidebar(QMainWindow):
             # Start recording
             self.is_recording = True
             self.chat_input.setPlaceholderText("🎤 Listening... (Click mic again to stop)")
-            self.chat_input.setStyleSheet("""
-                QTextEdit {
-                    background: #FFFACD;
-                    border: 3px solid #FFD700;
-                    border-radius: 8px;
-                    padding: 8px;
-                    font-size: 13px;
-                    color: black;
-                    font-family: 'Segoe UI';
-                }
-            """)
+            self.chat_input.setObjectName("chat_input_recording")
+            self.apply_stylesheet_to_widget(self.chat_input)
             print("Voice recording started...")
             
         else:
             # Stop recording
             self.is_recording = False
             self.chat_input.setPlaceholderText("Type your message here...")
-            self.chat_input.setStyleSheet("""
-                QTextEdit {
-                    background: white;
-                    border: 2px solid rgba(135, 206, 235, 0.5);
-                    border-radius: 8px;
-                    padding: 8px;
-                    font-size: 13px;
-                    color: black;
-                    font-family: 'Segoe UI';
-                }
-                QTextEdit:focus {
-                    border-color: #87CEEB;
-                    background: white;
-                }
-            """)
+            self.chat_input.setObjectName("chat_input_stopped")
+            self.apply_stylesheet_to_widget(self.chat_input)
             
             print("Voice recording stopped. Transcribed text added to input.")
 
     def handle_voice_result(self, result_json: str):
-        text = f'{json.loads(result_json).get("text", "")}. '
+        text = json.loads(result_json).get("text", "").strip().lower()
+        print(f"Voice detected: '{text}'")  # Debug output
+        
+        # Check for mouse commands first
+        if self.process_voice_mouse_command(text):
+            return  # Command processed, don't add to chat input
+            
+        # Add to chat input using signal (thread-safe)
+        formatted_text = f'{text}. '
+        self.voice_controller.update_chat_input_signal.emit(formatted_text)
+    
+    def process_voice_mouse_command(self, text: str) -> bool:
+        """Process voice commands for mouse actions. Returns True if command was processed."""
+        if not pyautogui:
+            return False
+            
+        # Define mouse command patterns with Qt signals
+        mouse_commands = {
+            r'^click$': self.voice_controller.left_click_signal,  # Simple "click" = left click
+            r'^left\s*click$': self.voice_controller.left_click_signal,
+            r'^right\s*click$': self.voice_controller.right_click_signal, 
+            r'^middle\s*click$': self.voice_controller.middle_click_signal,
+            r'^middle\s*mouse$': self.voice_controller.middle_click_signal,
+            r'^shift\s*\+\s*click$': self.voice_controller.shift_click_signal,
+            r'^shift\s*click$': self.voice_controller.shift_click_signal
+        }
+        
+        # Check each pattern
+        for pattern, signal in mouse_commands.items():
+            if re.match(pattern, text):
+                try:
+                    print(f"Matched pattern '{pattern}' for text '{text}' - emitting signal")
+                    signal.emit()
+                    print(f"Executed mouse command: {text}")
+                    return True
+                except Exception as e:
+                    print(f"Error executing mouse command '{text}': {e}")
+                    return False
+        
+        print(f"No mouse command pattern matched for: '{text}'")
+        return False
+    
+    def update_chat_input_from_voice(self, text: str):
+        """Update chat input from voice thread via signal (runs on main thread)"""
         current_text = self.chat_input.toPlainText()
-        self.chat_input.setPlainText(current_text + text)       
+        self.chat_input.setPlainText(current_text + text)
+    
+    # Mouse action methods removed - now handled by VoiceController
 
     def update_status_bar(self):
         """Update the status bar with active features and their colors"""
@@ -519,37 +465,20 @@ class CollapsibleSidebar(QMainWindow):
             bg_color = "#CCCCCC"  # Gray for disabled state
             text_color = "#666666"  # Dark gray text for disabled state
             
-        switch.setStyleSheet(f"""
-            QCheckBox {{
-                background: {bg_color};
-                color: {text_color};
-                border: 2px solid rgba(255, 255, 255, 0.8);
-                border-radius: 15px;
-                padding: 18px;
-                font-size: 15px;
-                font-weight: bold;
-                letter-spacing: 1px;
-                min-height: 25px;
-            }}
-            QCheckBox:hover {{
-                background: {switch.active_color if switch.isChecked() else '#DDDDDD'};
-                border: 3px solid rgba(255, 255, 255, 1.0);
-            }}
-            QCheckBox::indicator {{
-                width: 20px;
-                height: 20px;
-                border-radius: 10px;
-                border: 2px solid white;
-                background: {'#2E8B57' if switch.isChecked() else '#CCCCCC'};
-                margin-right: 8px;
-            }}
-            QCheckBox::indicator:checked {{
-                background: #2E8B57;
-            }}
-            QCheckBox::indicator:unchecked {{
-                background: #CCCCCC;
-            }}
-        """)
+        # Apply dynamic styling for active/inactive state
+        if switch.isChecked():
+            switch.setStyleSheet(f"""
+                QCheckBox {{
+                    background: {switch.active_color};
+                    color: white;
+                }}
+                QCheckBox:hover {{
+                    background: {switch.active_color};
+                }}
+            """)
+        else:
+            # Reset to default stylesheet styling
+            switch.setStyleSheet("")
 
     def on_switch_toggled(self, switch, checked):
         """Handle any toggle switch change."""
@@ -663,17 +592,10 @@ class CollapsibleSidebar(QMainWindow):
     def update_status(self, message, color="#4682B4"):
         """Update the status label with heavenly styling"""
         self.status_label.setText(message)
-        self.status_label.setStyleSheet(f"""
-            QLabel {{
-                background: rgba(173, 216, 230, 0.3);
-                border: 2px solid rgba(176, 224, 230, 0.8);
-                border-radius: 10px;
-                padding: 10px;
-                color: {color};
-                font-size: 12px;
-                font-weight: bold;
-            }}
-        """)
+        if color != "#4682B4":
+            self.status_label.setStyleSheet(f"color: {color};")
+        else:
+            self.status_label.setStyleSheet("")
     
     def toggle_sidebar(self):
         """Toggle sidebar expansion/collapse"""
@@ -683,57 +605,164 @@ class CollapsibleSidebar(QMainWindow):
             self.expand_sidebar()
     
     def collapse_sidebar(self):
-        """Collapse the sidebar"""
+        """Collapse the entire window into circular HALO"""
         if not self.is_expanded:
             return
             
         self.is_expanded = False
-        self.toggle_btn.setText("▶")
         
-        # Get current position
-        current_rect = self.geometry()
+        # Hide all content - only show the button
+        self.content_widget.setVisible(False)
+        
+        # First change to frameless to remove window decorations
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        
+        # Transform button to fill entire circular window
+        self.toggle_btn.setFixedSize(80, 80)
+        self.toggle_btn.setText("HALO")
+        self.update_circular_halo_style()
+        
+        # Apply circular mask to make window truly circular
+        self.apply_circular_mask()
+        
+        # Show the window again after changing flags
+        self.show()
+        
+        # Set the geometry directly after becoming frameless
         screen = QApplication.primaryScreen().availableGeometry()
+        new_x = screen.width() - 80  # 80px circle
+        new_y = (screen.height() - 80) // 2  # Center vertically
         
-        # Calculate new position (move further right to hide content)
-        new_x = screen.width() - self.collapsed_width
-        new_rect = QRect(new_x, 0, self.collapsed_width, screen.height())
-        
-        # Animate the collapse
-        self.sidebar_animation.setStartValue(current_rect)
-        self.sidebar_animation.setEndValue(new_rect)
-        self.sidebar_animation.start()
+        # Set size and position directly (no animation for collapse to avoid geometry issues)
+        self.setFixedSize(80, 80)
+        self.move(new_x, new_y)
     
     def expand_sidebar(self):
-        """Expand the sidebar"""
+        """Expand the window from circular HALO to full panel"""
         if self.is_expanded:
             return
             
         self.is_expanded = True
-        self.toggle_btn.setText("◀")
         
-        # Get current position
-        current_rect = self.geometry()
+        # Remove circular mask first
+        self.clearMask()
+        
+        # Restore window frame (make it movable again)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
+        
+        # Show the window again after changing flags
+        self.show()
+        
+        # Restore window to full panel size and position
         screen = QApplication.primaryScreen().availableGeometry()
-        
-        # Calculate new position
         new_x = screen.width() - self.expanded_width
-        new_rect = QRect(new_x, 0, self.expanded_width, screen.height())
+        self.setFixedSize(self.expanded_width, self.window_height)
+        self.move(new_x, self.margin_top)
         
-        # Animate the expansion
-        self.sidebar_animation.setStartValue(current_rect)
-        self.sidebar_animation.setEndValue(new_rect)
-        self.sidebar_animation.start()
+        # Show the main content
+        self.content_widget.setVisible(True)
+        
+        # Transform button back to arrow
+        self.toggle_btn.setFixedSize(35, 90)  # Original size
+        self.toggle_btn.setText("◀")  # Left arrow when expanded
+        self.toggle_btn.setStyleSheet("")  # Reset to stylesheet styling
+        
+        # Reload the main stylesheet to restore normal styling
+        self.load_stylesheet()
     
     def enterEvent(self, event):
         """Mouse entered the widget"""
-        if not self.is_expanded:
-            self.hover_timer.start(300)  # 300ms delay before expanding
         super().enterEvent(event)
     
     def leaveEvent(self, event):
         """Mouse left the widget"""
-        self.hover_timer.stop()
         super().leaveEvent(event)
+    
+    def mousePressEvent(self, event):
+        """Handle mouse press for dragging"""
+        if event.button() == Qt.LeftButton:
+            self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+    
+    def mouseMoveEvent(self, event):
+        """Handle mouse move for dragging"""
+        if event.buttons() == Qt.LeftButton and self.drag_position is not None:
+            new_pos = event.globalPosition().toPoint() - self.drag_position
+            self.move(new_pos)
+            event.accept()
+        else:
+            super().mouseMoveEvent(event)
+    
+    def mouseReleaseEvent(self, event):
+        """Handle mouse release"""
+        if event.button() == Qt.LeftButton:
+            self.drag_position = None
+            event.accept()
+        else:
+            super().mouseReleaseEvent(event)
+    
+    def update_circular_halo_style(self):
+        """Apply circular HALO styling when collapsed"""
+        # Style for the button to fill the entire circular window
+        button_style = """
+            QPushButton {
+                background: qradialgradient(cx:0.5, cy:0.5, radius:0.8,
+                    stop:0 #87CEEB, stop:0.7 #4682B4, stop:1 #2E8B57);
+                color: white;
+                border: none;
+                border-radius: 40px;
+                font-size: 14px;
+                font-weight: bold;
+                font-family: 'Segoe UI';
+                text-align: center;
+            }
+            QPushButton:hover {
+                background: qradialgradient(cx:0.5, cy:0.5, radius:0.8,
+                    stop:0 #ADD8E6, stop:0.7 #87CEEB, stop:1 #4682B4);
+            }
+        """
+        self.toggle_btn.setStyleSheet(button_style)
+        
+        # Style for the main window to be transparent/circular
+        window_style = """
+            QMainWindow {
+                background: transparent;
+                border: none;
+            }
+        """
+        self.setStyleSheet(window_style)
+    
+    def apply_circular_mask(self):
+        """Apply a circular mask to make the window truly circular"""
+        from PySide6.QtGui import QRegion
+        
+        # Create circular region
+        region = QRegion(0, 0, 80, 80, QRegion.Ellipse)
+        self.setMask(region)
+    
+    def load_stylesheet(self):
+        """Load the external stylesheet"""
+        try:
+            stylesheet_path = os.path.join(os.path.dirname(__file__), 'styles.qss')
+            with open(stylesheet_path, 'r', encoding='utf-8') as f:
+                stylesheet = f.read()
+            self.setStyleSheet(stylesheet)
+        except FileNotFoundError:
+            print("Warning: styles.qss file not found. Using default styling.")
+        except Exception as e:
+            print(f"Error loading stylesheet: {e}")
+    
+    def apply_stylesheet_to_widget(self, widget):
+        """Reapply the main stylesheet to ensure widget styling is updated"""
+        try:
+            stylesheet_path = os.path.join(os.path.dirname(__file__), 'styles.qss')
+            with open(stylesheet_path, 'r', encoding='utf-8') as f:
+                stylesheet = f.read()
+            self.setStyleSheet(stylesheet)
+        except Exception as e:
+            print(f"Error reapplying stylesheet: {e}")
 
 def main():
     # Create the application
