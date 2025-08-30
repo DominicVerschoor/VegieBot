@@ -1,4 +1,7 @@
-# https://github.com/JEOresearch/EyeTracker/tree/main/HeadTracker
+"""Head Mouse Tracker using MediaPipe face detection
+
+Based on: https://github.com/JEOresearch/EyeTracker/tree/main/HeadTracker
+"""
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -10,112 +13,151 @@ import time
 import keyboard
 
 class OneEuroFilter:
+    """One Euro Filter for smooth mouse movement"""
+    
     def __init__(self, min_cutoff=1.5, beta=0.03, d_cutoff=1.0, freq=60.0):
-        self.min_cutoff = float(min_cutoff)  # Hz
+        self.min_cutoff = float(min_cutoff)
         self.beta = float(beta)
         self.d_cutoff = float(d_cutoff)
         self.freq = float(freq)
-        self.x_prev = None
-        self.dx_prev = None
+        self.prev_x = None
+        self.prev_dx = None
 
     def _alpha(self, cutoff):
+        """Calculate alpha for filtering"""
         tau = 1.0 / (2.0 * math.pi * cutoff)
-        te = 1.0 / self.freq
-        return 1.0 / (1.0 + tau / te)
+        dt = 1.0 / self.freq
+        return 1.0 / (1.0 + tau / dt)
 
     def filter(self, x):
-        # derivative
-        if self.x_prev is None:
+        """Apply One Euro Filter to input value"""
+        # Calculate derivative
+        if self.prev_x is None:
             dx = 0.0
         else:
-            dx = (x - self.x_prev) * self.freq
+            dx = (x - self.prev_x) * self.freq
 
-        # smooth derivative
-        if self.dx_prev is None:
-            dx_hat = dx
+        # Smooth derivative
+        if self.prev_dx is None:
+            smooth_dx = dx
         else:
-            a_d = self._alpha(self.d_cutoff)
-            dx_hat = a_d * dx + (1 - a_d) * self.dx_prev
+            alpha_d = self._alpha(self.d_cutoff)
+            smooth_dx = alpha_d * dx + (1 - alpha_d) * self.prev_dx
 
-        # dynamic cutoff
-        cutoff = self.min_cutoff + self.beta * abs(dx_hat)
-        a = self._alpha(cutoff)
+        # Dynamic cutoff frequency
+        cutoff = self.min_cutoff + self.beta * abs(smooth_dx)
+        alpha = self._alpha(cutoff)
 
-        # smooth signal
-        if self.x_prev is None:
-            x_hat = x
+        # Smooth the signal
+        if self.prev_x is None:
+            smooth_x = x
         else:
-            x_hat = a * x + (1 - a) * self.x_prev
+            smooth_x = alpha * x + (1 - alpha) * self.prev_x
 
-        self.x_prev = x_hat
-        self.dx_prev = dx_hat
-        return x_hat
+        # Store for next iteration
+        self.prev_x = smooth_x
+        self.prev_dx = smooth_dx
+        return smooth_x
 
 
 class HeadMouseTracker:
-    FACE_OUTLINE_INDICES = [
+    """Head-based mouse control using facial landmarks"""
+    
+    # Face outline landmark indices for MediaPipe
+    FACE_OUTLINE = [
         10, 338, 297, 332, 284, 251, 389, 356,
         454, 323, 361, 288, 397, 365, 379, 378,
         400, 377, 152, 148, 176, 149, 150, 136,
         172, 58, 132, 93, 234, 127, 162, 21,
         54, 103, 67, 109
     ]
-    LANDMARKS = { "left": 234, "right": 454, "top": 10, "bottom": 152, "front": 1 }
+    
+    # Key facial landmarks
+    LANDMARKS = {
+        "left": 234, "right": 454, "top": 10, 
+        "bottom": 152, "front": 1
+    }
 
     def __init__(
         self,
-        camera_index: int = 0,
-        filter_length: int = 40,
-        yawDegrees: float = 20.0,
-        pitchDegrees: float = 10.0,
-        euro_min_cutoff: float = 1.2,
-        euro_beta: float = 0.02,
-        euro_freq: float = 60.0
+        camera_index=0,
+        filter_length=40,
+        yaw_degrees=20.0,
+        pitch_degrees=10.0,
+        euro_min_cutoff=None,
+        euro_beta=None,
+        euro_freq=None,
+        fast_mode=False,
+        allow_runtime_override=True
     ):
+        # Camera settings
         self.cap = None
         self.camera_index = camera_index
         self.filter_length = filter_length
-        self.yawDegrees = yawDegrees
-        self.pitchDegrees = pitchDegrees
+        self.yaw_range = yaw_degrees
+        self.pitch_range = pitch_degrees
+        self.fast_mode = fast_mode
+        
+        # Runtime override permission
+        user_params = any([euro_min_cutoff, euro_beta, euro_freq])
+        self.allow_override = allow_runtime_override and not user_params
 
-        # Screen info
-        self.MONITOR_WIDTH, self.MONITOR_HEIGHT = pyautogui.size()
-        self.CENTER_X = self.MONITOR_WIDTH // 2
-        self.CENTER_Y = self.MONITOR_HEIGHT // 2
+        # Performance settings
+        if fast_mode:
+            # Fast mode: 200Hz, responsive
+            self.mouse_sleep = 0.005
+            euro_freq = euro_freq or 120.0
+            euro_min_cutoff = euro_min_cutoff or 0.8
+            euro_beta = euro_beta or 0.015
+        else:
+            # Power saving: 60Hz, smooth
+            self.mouse_sleep = 0.016
+            euro_freq = euro_freq or 45.0
+            euro_min_cutoff = euro_min_cutoff or 1.5
+            euro_beta = euro_beta or 0.03
 
-        # State
-        self.mouse_control_enabled = True
-        self.calibration_offset_yaw = 0.0
-        self.calibration_offset_pitch = 0.0
-        self.raw_yaw_deg = 180.0
-        self.raw_pitch_deg = 180.0
+        # Screen dimensions
+        self.screen_w, self.screen_h = pyautogui.size()
+        self.center_x = self.screen_w // 2
+        self.center_y = self.screen_h // 2
 
-        # Buffers
-        self.ray_origins = deque(maxlen=self.filter_length)
-        self.ray_directions = deque(maxlen=self.filter_length)
+        # Control state
+        self.mouse_enabled = True
+        self.cal_yaw = 0.0
+        self.cal_pitch = 0.0
+        self.raw_yaw = 180.0
+        self.raw_pitch = 180.0
 
-        # Smoothing filters (screen coords)
-        self.filt_x = OneEuroFilter(min_cutoff=euro_min_cutoff, beta=euro_beta, d_cutoff=1.0, freq=euro_freq)
-        self.filt_y = OneEuroFilter(min_cutoff=euro_min_cutoff, beta=euro_beta, d_cutoff=1.0, freq=euro_freq)
+        # Smoothing buffers
+        self.origins = deque(maxlen=self.filter_length)
+        self.directions = deque(maxlen=self.filter_length)
 
-        # Shared cursor target
-        self.mouse_target = [self.CENTER_X, self.CENTER_Y]
+        # Store filter parameters
+        self.euro_freq = euro_freq
+        self.euro_cutoff = euro_min_cutoff
+        self.euro_beta = euro_beta
+        
+        # Smoothing filters
+        self.filter_x = OneEuroFilter(euro_min_cutoff, euro_beta, 1.0, euro_freq)
+        self.filter_y = OneEuroFilter(euro_min_cutoff, euro_beta, 1.0, euro_freq)
+
+        # Mouse target coordinates
+        self.mouse_target = [self.center_x, self.center_y]
         self.mouse_lock = threading.Lock()
 
-        # Threads / control
-        self._stop_event = threading.Event()
-        self._mouse_thread = None
-        self._loop_thread = None
+        # Threading
+        self.stop_event = threading.Event()
+        self.mouse_thread = None
+        self.loop_thread = None
 
-        # MediaPipe
-        self.mp_face_mesh = mp.solutions.face_mesh
+        # MediaPipe face mesh
+        self.mp_face = mp.solutions.face_mesh
         self.face_mesh = None
 
-    # ---------- Public API ----------
-    def start(self, block: bool = True):
-        """Start tracking. If block=True, runs in the current thread until stopped."""
+    def start(self, block=True):
+        """Start head tracking"""
         if self.face_mesh is None:
-            self.face_mesh = self.mp_face_mesh.FaceMesh(
+            self.face_mesh = self.mp_face.FaceMesh(
                 static_image_mode=False,
                 max_num_faces=1,
                 refine_landmarks=True,
@@ -123,48 +165,57 @@ class HeadMouseTracker:
                 min_tracking_confidence=0.5
             )
 
+        # Initialize camera
         if self.cap is None:
             self.cap = cv2.VideoCapture(self.camera_index)
             if not self.cap.isOpened():
-                raise RuntimeError(f"Could not open camera index {self.camera_index}")
+                raise RuntimeError(f"Camera {self.camera_index} failed to open")
 
-        self._stop_event.clear()
+        self.stop_event.clear()
 
-        # Mouse mover thread
-        self._mouse_thread = threading.Thread(target=self._mouse_mover, daemon=True)
-        self._mouse_thread.start()
+        # Start mouse control thread
+        self.mouse_thread = threading.Thread(target=self.mouse_mover, daemon=True)
+        self.mouse_thread.start()
 
+        # Start processing
         if block:
-            # Run processing loop here
-            self._process_loop()
+            self.process_loop()
         else:
-            # Spawn processing in background
-            self._loop_thread = threading.Thread(target=self._process_loop, daemon=True)
-            self._loop_thread.start()
+            self.loop_thread = threading.Thread(target=self.process_loop, daemon=True)
+            self.loop_thread.start()
 
     def stop(self):
-        """Signal threads to stop and clean up resources."""
-        self._stop_event.set()
+        """Stop tracking and cleanup"""
+        self.stop_event.set()
         time.sleep(0.05)
-        if self._loop_thread and self._loop_thread.is_alive():
-            self._loop_thread.join(timeout=1.0)
-        if self._mouse_thread and self._mouse_thread.is_alive():
-            self._mouse_thread.join(timeout=1.0)
+        
+        # Stop threads (avoid joining current thread)
+        current_thread = threading.current_thread()
+        
+        if (self.loop_thread and self.loop_thread.is_alive() and 
+            self.loop_thread != current_thread):
+            self.loop_thread.join(timeout=1.0)
+            
+        if (self.mouse_thread and self.mouse_thread.is_alive() and 
+            self.mouse_thread != current_thread):
+            self.mouse_thread.join(timeout=1.0)
 
-        # Release camera and windows
-        if self.cap is not None:
+        # Cleanup camera
+        if self.cap:
             try:
                 self.cap.release()
             except Exception:
                 pass
             self.cap = None
+        
+        # Cleanup windows
         try:
             cv2.destroyAllWindows()
         except Exception:
             pass
 
-        # Release MediaPipe
-        if self.face_mesh is not None:
+        # Cleanup MediaPipe
+        if self.face_mesh:
             try:
                 self.face_mesh.close()
             except Exception:
@@ -172,31 +223,65 @@ class HeadMouseTracker:
             self.face_mesh = None
 
     def toggle_mouse_control(self):
-        self.mouse_control_enabled = not self.mouse_control_enabled
-        print(f"[Mouse Control] {'Enabled' if self.mouse_control_enabled else 'Disabled'}")
+        """Toggle mouse control on/off"""
+        self.mouse_enabled = not self.mouse_enabled
+        state = 'Enabled' if self.mouse_enabled else 'Disabled'
+        print(f"Mouse Control: {state}")
+    
+    def set_performance_mode(self, fast_mode):
+        """Update performance settings"""
+        self.fast_mode = fast_mode
+        
+        # Update mouse rate
+        if fast_mode:
+            self.mouse_sleep = 0.005  # 200Hz
+            print("Fast mode: 200Hz tracking")
+        else:
+            self.mouse_sleep = 0.016  # 60Hz
+            print("Power saving: 60Hz tracking")
+        
+        # Update filters if allowed
+        if self.allow_override:
+            if fast_mode:
+                freq, cutoff, beta = 120.0, 0.8, 0.015
+            else:
+                freq, cutoff, beta = 45.0, 1.5, 0.03
+            
+            # Store new parameters
+            self.euro_freq = freq
+            self.euro_cutoff = cutoff
+            self.euro_beta = beta
+            
+            # Recreate filters
+            self.filter_x = OneEuroFilter(cutoff, beta, 1.0, freq)
+            self.filter_y = OneEuroFilter(cutoff, beta, 1.0, freq)
+            print(f"Filters updated: freq={freq}, cutoff={cutoff}, beta={beta}")
+        else:
+            print("Preserving custom filter parameters")
 
     def calibrate_center(self):
-        """Call when user is looking at screen center."""
-        self.calibration_offset_yaw = 180.0 - self.raw_yaw_deg
-        self.calibration_offset_pitch = 180.0 - self.raw_pitch_deg
-        print(f"[Calibrated] Offset Yaw: {self.calibration_offset_yaw:.2f}, Offset Pitch: {self.calibration_offset_pitch:.2f}")
+        """Calibrate center position"""
+        self.cal_yaw = 180.0 - self.raw_yaw
+        self.cal_pitch = 180.0 - self.raw_pitch
+        print(f"Calibrated - Yaw: {self.cal_yaw:.2f}, Pitch: {self.cal_pitch:.2f}")
 
-    # ---------- Internal ----------
-    def _mouse_mover(self):
-        # You can tune the rate and interpolation here if needed
-        while not self._stop_event.is_set():
+    def mouse_mover(self):
+        """Mouse movement thread"""
+        while not self.stop_event.is_set():
             with self.mouse_lock:
                 x, y = self.mouse_target
-            if self.mouse_control_enabled:
+            if self.mouse_enabled:
                 pyautogui.moveTo(x, y)
-            time.sleep(0.01)
+            time.sleep(self.mouse_sleep)
 
     @staticmethod
-    def _landmark_to_np(landmark, w, h):
+    def landmark_to_3d(landmark, w, h):
+        """Convert MediaPipe landmark to 3D coordinates"""
         return np.array([landmark.x * w, landmark.y * h, landmark.z * w])
 
-    def _process_loop(self):
-        while not self._stop_event.is_set() and self.cap.isOpened():
+    def process_loop(self):
+        """Main processing loop"""
+        while not self.stop_event.is_set() and self.cap.isOpened():
             ret, frame = self.cap.read()
             if not ret:
                 break
@@ -206,90 +291,98 @@ class HeadMouseTracker:
             results = self.face_mesh.process(rgb)
 
             if results.multi_face_landmarks:
-                face_landmarks = results.multi_face_landmarks[0].landmark
-                landmarks_frame = np.zeros_like(frame)  # Black canvas
+                landmarks = results.multi_face_landmarks[0].landmark
+                debug_frame = np.zeros_like(frame)
 
-                # Draw landmarks (optional)
-                for i, landmark in enumerate(face_landmarks):
-                    pt = self._landmark_to_np(landmark, w, h)
+                # Draw landmarks for debugging
+                for i, landmark in enumerate(landmarks):
+                    pt = self.landmark_to_3d(landmark, w, h)
                     x, y = int(pt[0]), int(pt[1])
                     if 0 <= x < w and 0 <= y < h:
-                        color = (155,155,155) if i in self.FACE_OUTLINE_INDICES else (255,25,10)
-                        cv2.circle(landmarks_frame, (x, y), 3, color, -1)
+                        color = (155,155,155) if i in self.FACE_OUTLINE else (255,25,10)
+                        cv2.circle(debug_frame, (x, y), 3, color, -1)
                         frame[y, x] = (255,255,255)
 
-                # Key landmarks
-                key_points = {}
+                # Extract key facial points
+                points = {}
                 for name, idx in self.LANDMARKS.items():
-                    pt = self._landmark_to_np(face_landmarks[idx], w, h)
-                    key_points[name] = pt
+                    pt = self.landmark_to_3d(landmarks[idx], w, h)
+                    points[name] = pt
                     x, y = int(pt[0]), int(pt[1])
                     cv2.circle(frame, (x, y), 4, (0,0,0), -1)
 
-                left   = key_points["left"]
-                right  = key_points["right"]
-                top    = key_points["top"]
-                bottom = key_points["bottom"]
-                front  = key_points["front"]
+                # Get face orientation points
+                left = points["left"]
+                right = points["right"]
+                top = points["top"]
+                bottom = points["bottom"]
+                front = points["front"]
 
-                # Face axes
-                right_axis = (right - left);   right_axis /= np.linalg.norm(right_axis)
-                up_axis    = (top - bottom);   up_axis /= np.linalg.norm(up_axis)
-                forward_axis = np.cross(right_axis, up_axis); forward_axis /= np.linalg.norm(forward_axis)
-                forward_axis = -forward_axis  # ensure outward
+                # Calculate face coordinate system
+                right_vec = (right - left)
+                right_vec /= np.linalg.norm(right_vec)
+                
+                up_vec = (top - bottom)
+                up_vec /= np.linalg.norm(up_vec)
+                
+                forward_vec = np.cross(right_vec, up_vec)
+                forward_vec /= np.linalg.norm(forward_vec)
+                forward_vec = -forward_vec  # Point outward
 
+                # Face center
                 center = (left + right + top + bottom + front) / 5.0
 
-                # Head-aligned cube (for viz)
-                half_width  = np.linalg.norm(right - left) / 2.0
-                half_height = np.linalg.norm(top - bottom) / 2.0
-                half_depth  = 80.0
+                # Draw 3D cube for visualization
+                w_half = np.linalg.norm(right - left) / 2.0
+                h_half = np.linalg.norm(top - bottom) / 2.0
+                d_half = 80.0
 
-                def corner(x_sign, y_sign, z_sign):
-                    return (center
-                        + x_sign * half_width  * right_axis
-                        + y_sign * half_height * up_axis
-                        + z_sign * half_depth  * forward_axis)
+                def corner(x, y, z):
+                    return (center + x * w_half * right_vec + 
+                            y * h_half * up_vec + z * d_half * forward_vec)
 
-                cube_corners = [
-                    corner(-1,  1, -1), corner( 1,  1, -1),
-                    corner( 1, -1, -1), corner(-1, -1, -1),
-                    corner(-1,  1,  1), corner( 1,  1,  1),
-                    corner( 1, -1,  1), corner(-1, -1,  1),
+                # Cube corners
+                corners = [
+                    corner(-1, 1, -1), corner(1, 1, -1),
+                    corner(1, -1, -1), corner(-1, -1, -1),
+                    corner(-1, 1, 1), corner(1, 1, 1),
+                    corner(1, -1, 1), corner(-1, -1, 1),
                 ]
 
-                def project(pt3d): return int(pt3d[0]), int(pt3d[1])
-
+                # Draw cube edges
                 edges = [(0,1),(1,2),(2,3),(3,0),(4,5),(5,6),(6,7),(7,4),(0,4),(1,5),(2,6),(3,7)]
-                cc2d = [project(p) for p in cube_corners]
-                for i,j in edges:
-                    cv2.line(frame, cc2d[i], cc2d[j], (255,125,35), 2)
+                corners_2d = [(int(p[0]), int(p[1])) for p in corners]
+                for i, j in edges:
+                    cv2.line(frame, corners_2d[i], corners_2d[j], (255,125,35), 2)
 
-                # Smooth forward ray inputs
-                self.ray_origins.append(center)
-                self.ray_directions.append(forward_axis)
-                avg_origin    = np.mean(self.ray_origins, axis=0)
-                avg_direction = np.mean(self.ray_directions, axis=0)
-                avg_direction /= np.linalg.norm(avg_direction)
+                # Smooth head orientation
+                self.origins.append(center)
+                self.directions.append(forward_vec)
+                smooth_origin = np.mean(self.origins, axis=0)
+                smooth_direction = np.mean(self.directions, axis=0)
+                smooth_direction /= np.linalg.norm(smooth_direction)
 
-                # Angles (your original math)
-                reference_forward = np.array([0, 0, -1])
-                xz_proj = np.array([avg_direction[0], 0, avg_direction[2]])
+                # Calculate head angles
+                ref_forward = np.array([0, 0, -1])
+                
+                # Yaw (left/right)
+                xz_proj = np.array([smooth_direction[0], 0, smooth_direction[2]])
                 xz_proj /= np.linalg.norm(xz_proj)
-                yaw_rad = math.acos(np.clip(np.dot(reference_forward, xz_proj), -1.0, 1.0))
-                if avg_direction[0] < 0:
+                yaw_rad = math.acos(np.clip(np.dot(ref_forward, xz_proj), -1.0, 1.0))
+                if smooth_direction[0] < 0:
                     yaw_rad = -yaw_rad
 
-                yz_proj = np.array([0, avg_direction[1], avg_direction[2]])
+                # Pitch (up/down)
+                yz_proj = np.array([0, smooth_direction[1], smooth_direction[2]])
                 yz_proj /= np.linalg.norm(yz_proj)
-                pitch_rad = math.acos(np.clip(np.dot(reference_forward, yz_proj), -1.0, 1.0))
-                if avg_direction[1] > 0:
+                pitch_rad = math.acos(np.clip(np.dot(ref_forward, yz_proj), -1.0, 1.0))
+                if smooth_direction[1] > 0:
                     pitch_rad = -pitch_rad
 
-                yaw_deg   = np.degrees(yaw_rad)
+                yaw_deg = np.degrees(yaw_rad)
                 pitch_deg = np.degrees(pitch_rad)
 
-                # Convert (original logic)
+                # Normalize angles
                 if yaw_deg < 0:
                     yaw_deg = abs(yaw_deg)
                 elif yaw_deg < 180:
@@ -297,47 +390,50 @@ class HeadMouseTracker:
                 if pitch_deg < 0:
                     pitch_deg = 360 + pitch_deg
 
-                self.raw_yaw_deg = yaw_deg
-                self.raw_pitch_deg = pitch_deg
+                # Store raw angles
+                self.raw_yaw = yaw_deg
+                self.raw_pitch = pitch_deg
 
                 # Apply calibration
-                yaw_deg   += self.calibration_offset_yaw
-                pitch_deg += self.calibration_offset_pitch
+                yaw_deg += self.cal_yaw
+                pitch_deg += self.cal_pitch
 
-                # Map to screen
-                screen_x = int(((yaw_deg - (180 - self.yawDegrees)) / (2 * self.yawDegrees)) * self.MONITOR_WIDTH)
-                screen_y = int(((180 + self.pitchDegrees - pitch_deg) / (2 * self.pitchDegrees)) * self.MONITOR_HEIGHT)
+                # Map to screen coordinates
+                screen_x = int(((yaw_deg - (180 - self.yaw_range)) / (2 * self.yaw_range)) * self.screen_w)
+                screen_y = int(((180 + self.pitch_range - pitch_deg) / (2 * self.pitch_range)) * self.screen_h)
 
-                # Clamp
-                screen_x = max(10, min(self.MONITOR_WIDTH  - 10, screen_x))
-                screen_y = max(10, min(self.MONITOR_HEIGHT - 10, screen_y))
+                # Keep cursor on screen
+                screen_x = max(10, min(self.screen_w - 10, screen_x))
+                screen_y = max(10, min(self.screen_h - 10, screen_y))
 
-                # One Euro smoothing (only change vs original)
-                smooth_x = int(round(self.filt_x.filter(screen_x)))
-                smooth_y = int(round(self.filt_y.filter(screen_y)))
+                # Apply smoothing filters
+                smooth_x = int(round(self.filter_x.filter(screen_x)))
+                smooth_y = int(round(self.filter_y.filter(screen_y)))
 
-                # Update target for mouse mover thread
-                if self.mouse_control_enabled:
+                # Update mouse target
+                if self.mouse_enabled:
                     with self.mouse_lock:
                         self.mouse_target[0] = smooth_x
                         self.mouse_target[1] = smooth_y
 
-                # Draw forward ray (viz)
-                ray_length = 2.5 * half_depth
-                ray_end = avg_origin - avg_direction * ray_length
-                cv2.line(frame, project(avg_origin), project(ray_end), (15,255,0), 3)
-                cv2.line(landmarks_frame, project(avg_origin), project(ray_end), (15,255,0), 3)
+                # Draw head direction ray
+                ray_length = 2.5 * d_half
+                ray_end = smooth_origin - smooth_direction * ray_length
+                start_2d = (int(smooth_origin[0]), int(smooth_origin[1]))
+                end_2d = (int(ray_end[0]), int(ray_end[1]))
+                cv2.line(frame, start_2d, end_2d, (15,255,0), 3)
+                cv2.line(debug_frame, start_2d, end_2d, (15,255,0), 3)
 
                 # Debug print (optional)
                 # print(f"Screen (raw): ({screen_x}, {screen_y}) | smooth: ({smooth_x}, {smooth_y})")
 
-                cv2.imshow("Head-Aligned Cube", frame)
-                cv2.imshow("Facial Landmarks", landmarks_frame)
+                cv2.imshow("Head Tracking", frame)
+                cv2.imshow("Landmarks", debug_frame)
 
-                # Hotkeys (same as your original behavior)
+                # Hotkey for toggling mouse control
                 if keyboard.is_pressed('f7'):
                     self.toggle_mouse_control()
-                    time.sleep(0.3)  # debounce
+                    time.sleep(0.3)
 
                 key = cv2.waitKey(1) & 0xFF
                 if key == ord('q'):
@@ -347,30 +443,31 @@ class HeadMouseTracker:
                     self.calibrate_center()
 
             else:
-                # No face — still show frames (optional)
-                cv2.imshow("Head-Aligned Cube", frame)
+                # No face detected - show frame anyway
+                cv2.imshow("Head Tracking", frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     self.stop()
                     return
 
-        # graceful stop
+        # Cleanup on exit
         self.stop()
 
 
 def main():
+    """Test the head tracker"""
     tracker = HeadMouseTracker(
         camera_index=0,
         filter_length=40,
-        yawDegrees=20.0,
-        pitchDegrees=10.0,
+        yaw_degrees=20.0,
+        pitch_degrees=10.0,
         euro_min_cutoff=1.2,
         euro_beta=0.02,
         euro_freq=60.0
     )
     try:
-        tracker.start(block=True)  # runs until 'q' pressed or tracker.stop() called
+        tracker.start(block=True)
     except KeyboardInterrupt:
-        pass
+        print("Interrupted by user")
     finally:
         tracker.stop()
 

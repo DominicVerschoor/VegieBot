@@ -1,47 +1,60 @@
-/* Main Window Styling */
+/* ============ MAIN WINDOW ============ */
 QMainWindow {
     background: white;
     border: 3px solid rgba(255, 255, 255, 0.8);
     border-radius: 20px;
 }
 
-/* Toggle Button */
+/* ============ TOGGLE BUTTON ============ */
 #toggle_btn {
-    background: #87CEEB;
+    background: #0066FF;
     color: white;
-    border: 2px solid rgba(255, 255, 255, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.8);
     font-size: 20px;
     font-weight: bold;
-    border-top-left-radius: 15px;
-    border-bottom-left-radius: 15px;
+    border-radius: 0px;
 }
 
 #toggle_btn:hover {
-    background: #4682B4;
-    border: 2px solid rgba(255, 255, 255, 0.9);
+    background: #0044CC;
+    border: 2px solid rgba(255, 255, 255, 1.0);
 }
 
-/* Title Label */
+/* ============ HEADER ELEMENTS ============ */
 #title_label {
     color: #4682B4;
 }
 
-/* Close Button */
 #close_btn {
-    background: #FF69B4;
+    background: #FF0000;
     color: white;
-    border: 2px solid rgba(255, 255, 255, 0.7);
-    border-radius: 15px;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 20px;
     font-size: 16px;
     font-weight: bold;
+    text-align: center;
 }
 
 #close_btn:hover {
-    background: #FF1493;
+    background: #CC0000;
     border: 2px solid rgba(255, 255, 255, 1.0);
 }
 
-/* Status Label */
+#help_btn {
+    background: #FFDD00;
+    color: black;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 20px;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+}
+
+#help_btn:hover {
+    background: #E6C400;
+    border: 2px solid rgba(255, 255, 255, 1.0);
+}
+
 #status_label {
     background: rgba(173, 216, 230, 0.3);
     border: 2px solid rgba(176, 224, 230, 0.8);
@@ -53,7 +66,6 @@ QMainWindow {
     margin-top: 8px;
 }
 
-/* Separator */
 #separator {
     color: rgba(135, 206, 235, 0.6);
     background: rgba(135, 206, 235, 0.8);
@@ -62,7 +74,7 @@ QMainWindow {
     margin: 10px 20px;
 }
 
-/* Chat Container */
+/* ============ CHAT INTERFACE ============ */
 #chat_container {
     background: rgba(255, 255, 255, 0.95);
     border: 3px solid rgba(135, 206, 235, 0.8);
@@ -70,14 +82,12 @@ QMainWindow {
     margin: 8px;
 }
 
-/* Chat Header */
 #chat_header {
     color: #4682B4; 
     margin-bottom: 8px; 
     border: none;
 }
 
-/* Chat Display */
 #chat_display {
     background: white;
     border: 2px solid rgba(176, 224, 230, 0.6);
@@ -88,7 +98,6 @@ QMainWindow {
     font-family: 'Segoe UI';
 }
 
-/* Chat Input - Default State */
 #chat_input {
     background: #FFFFFF;
     border: 2px solid #87CEEB;
@@ -96,16 +105,13 @@ QMainWindow {
     padding: 5px;
     font-size: 14px;
     color: #000000;
-    font-family: Arial, sans-serif;
-    font-weight: normal;
+    font-family: 'Segoe UI';
 }
 
 #chat_input:focus {
     border-color: #4682B4;
-    background: #FFFFFF;
 }
 
-/* Chat Input - Recording State */
 #chat_input_recording {
     background: #FFFACD;
     border: 3px solid #FFD700;
@@ -116,7 +122,6 @@ QMainWindow {
     font-family: 'Segoe UI';
 }
 
-/* Chat Input - Stopped Recording State */
 #chat_input_stopped {
     background: white;
     border: 2px solid rgba(135, 206, 235, 0.5);
@@ -129,10 +134,8 @@ QMainWindow {
 
 #chat_input_stopped:focus {
     border-color: #87CEEB;
-    background: white;
 }
 
-/* Chat Voice Button */
 #chat_voice_btn {
     background: #F0E68C;
     color: white;
@@ -142,21 +145,16 @@ QMainWindow {
     font-weight: bold;
 }
 
-#chat_voice_btn:checked {
-    background: #DAA520;
-    border: 2px solid rgba(255, 255, 255, 0.9);
-}
-
+#chat_voice_btn:checked,
 #chat_voice_btn:hover {
     background: #DAA520;
     border: 2px solid rgba(255, 255, 255, 1.0);
 }
 
-/* Send Button */
 #send_btn {
-    background: #87CEEB;
+    background: #8800FF;
     color: white;
-    border: 2px solid rgba(255, 255, 255, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.8);
     border-radius: 10px;
     padding: 5px 8px;
     font-size: 12px;
@@ -166,15 +164,15 @@ QMainWindow {
 }
 
 #send_btn:hover {
-    background: #4682B4;
+    background: #7700DD;
     border: 2px solid rgba(255, 255, 255, 1.0);
 }
 
 #send_btn:pressed {
-    background: #4169E1;
+    background: #6600BB;
 }
 
-/* Toggle Switches */
+/* ============ TOGGLE SWITCHES ============ */
 QCheckBox {
     background: #CCCCCC;
     color: #666666;
@@ -192,6 +190,10 @@ QCheckBox:hover {
     border: 3px solid rgba(255, 255, 255, 1.0);
 }
 
+QCheckBox:checked {
+    color: white;
+}
+
 QCheckBox::indicator {
     width: 20px;
     height: 20px;
@@ -202,14 +204,162 @@ QCheckBox::indicator {
 }
 
 QCheckBox::indicator:checked {
-    background: #2E8B57;
+    background: #00CC00;
+    border: 2px solid white;
 }
 
-QCheckBox::indicator:unchecked {
-    background: #CCCCCC;
-}
-
-/* Active Toggle Switches (will be set dynamically) */
-QCheckBox:checked {
+/* ============ ACTIVATE ALL BUTTON ============ */
+#activate_all_btn {
+    background: #FF6600;
     color: white;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 15px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#activate_all_btn:hover {
+    background: #E55500;
+    border: 2px solid rgba(255, 255, 255, 1.0);
+}
+
+#activate_all_btn:pressed {
+    background: #CC4400;
+}
+
+/* ============ DEACTIVATE ALL BUTTON ============ */
+#deactivate_all_btn {
+    background: #FF0000;
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 15px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#deactivate_all_btn:hover {
+    background: #CC0000;
+    border: 2px solid rgba(255, 255, 255, 1.0);
+}
+
+#deactivate_all_btn:pressed {
+    background: #990000;
+}
+
+/* ============ AI INTERFACE ============ */
+#assistant_header {
+    color: #2c3e50;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+#assistant_dropdown {
+    background: white;
+    border: 2px solid #e1e8ed;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 14px;
+    color: #2c3e50;
+    font-family: 'Segoe UI';
+    min-height: 20px;
+}
+
+#assistant_dropdown:hover,
+#assistant_dropdown:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+#assistant_dropdown::drop-down {
+    border: none;
+    background: transparent;
+    width: 20px;
+}
+
+#assistant_dropdown::down-arrow {
+    image: none;
+    border: none;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #7f8c8d;
+}
+
+#dropdown_subtitle {
+    color: #7f8c8d;
+    margin-bottom: 15px;
+}
+
+#feature_card {
+    background: white;
+    border: 1px solid #e1e8ed;
+    border-radius: 12px;
+    padding: 0;
+    margin-bottom: 8px;
+}
+
+#feature_card:hover {
+    border-color: #3498db;
+    background: #f8fafc;
+}
+
+#feature_icon {
+    background: transparent;
+    color: #3498db;
+}
+
+#feature_title {
+    color: #2c3e50;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+#feature_description {
+    color: #7f8c8d;
+    line-height: 1.4;
+}
+
+/* ============ BUTTONS ============ */
+#prompt_btn {
+    background: white;
+    border: 1px solid #e1e8ed;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 12px;
+    color: #2c3e50;
+    font-family: 'Segoe UI';
+    min-height: 15px;
+}
+
+#prompt_btn:hover {
+    background: #f1f3f4;
+    border-color: #3498db;
+}
+
+#prompt_btn:pressed {
+    background: #e8f0fe;
+}
+
+#lightning_icon {
+    color: #3498db;
+    background: transparent;
+    padding: 5px;
+}
+
+#send_btn_arrow {
+    background: #0066FF;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#send_btn_arrow:hover {
+    background: #0044CC;
+}
+
+#send_btn_arrow:pressed {
+    background: #003399;
 }

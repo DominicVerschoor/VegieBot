@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
+"""Vosk microphone recognition as a reusable class
 
-# prerequisites: as described in https://alphacephei.com/vosk/install and also python module `sounddevice` (simply run command `pip install sounddevice`)
-# Example usage using Dutch (nl) recognition model: `python test_microphone.py -m nl`
-# For more help run: `python test_microphone.py -h`
-# vosk_recognizer.py
+Prerequisites: 
+- Install vosk and sounddevice: pip install vosk sounddevice
+- Download language model from https://alphacephei.com/vosk/models
 
-#!/usr/bin/env python3
-"""
-Vosk microphone recognition as a reusable class.
-
+Usage:
 - Press Ctrl+C to stop when running from CLI
-- Optional raw PCM dump via --filename (same as your original script)
+- Optional raw PCM dump via --filename parameter
 """
 
 import argparse
@@ -143,9 +140,10 @@ class VoskMicRecognizer:
                 pass
             self._stream = None
 
-        if self._thread and self._thread.is_alive():
+        if (self._thread and self._thread.is_alive() and 
+            self._thread != threading.current_thread()):
             self._thread.join(timeout=1.0)
-            self._thread = None
+        self._thread = None
 
         if self._dump_fh:
             try:
