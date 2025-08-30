@@ -1,9 +1,22 @@
-google-generativeai
-PySide6
-python-dotenv
-vosk
-opencv-python 
-mediapipe 
-numpy 
-pyautogui 
-keyboard
+# GUI Framework
+PySide6>=6.6.0
+
+# AI and Machine Learning
+google-generativeai>=0.3.2
+mediapipe>=0.10.0
+numpy>=1.24.0
+opencv-python>=4.8.0
+
+# Voice Recognition and Audio
+vosk>=0.3.45
+
+# System Automation
+pyautogui>=0.9.54
+keyboard>=0.13.5
+
+# Configuration and Environment
+python-dotenv>=1.0.0
+
+# Additional utilities that may be needed
+Pillow>=10.0.0  # For image processing
+requests>=2.31.0  # For HTTP requests
