@@ -11,12 +11,61 @@ try:
     import pyautogui
 except ImportError:
     print("Warning: pyautogui not installed. Voice mouse commands will not work.")
+    pyautogui = None
 
 from MonitorTracking import HeadMouseTracker
 from VoiceControl import VoskMicRecognizer
 from Chatbot import HaloChat
 
 #Please put future CSS changes in styles.qss
+
+class DraggableButton(QPushButton):
+    """Custom button that forwards mouse events to parent for dragging when collapsed"""
+    def __init__(self, text, parent):
+        super().__init__(text)
+        self.parent_window = parent
+        self.drag_start_pos = None
+        self.was_dragged = False
+    
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.drag_start_pos = event.globalPosition().toPoint()
+            self.was_dragged = False
+            # Only allow dragging when UI is collapsed
+            if not self.parent_window.is_expanded:
+                self.parent_window.mousePressEvent(event)
+        super().mousePressEvent(event)
+    
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.LeftButton and self.drag_start_pos:
+            # Calculate distance moved
+            current_pos = event.globalPosition().toPoint()
+            distance = (current_pos - self.drag_start_pos).manhattanLength()
+            
+            # If moved more than 5 pixels, consider it a drag
+            if distance > 5:
+                self.was_dragged = True
+            
+            # Only forward drag events when UI is collapsed
+            if not self.parent_window.is_expanded and self.was_dragged:
+                self.parent_window.mouseMoveEvent(event)
+        super().mouseMoveEvent(event)
+    
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            # Only forward to parent when collapsed
+            if not self.parent_window.is_expanded:
+                self.parent_window.mouseReleaseEvent(event)
+            
+            self.drag_start_pos = None
+            
+            # Prevent click event if we were dragging
+            if self.was_dragged:
+                event.accept()  # Consume the event to prevent click
+                self.was_dragged = False
+                return
+        
+        super().mouseReleaseEvent(event)
 
 class VoiceController(QObject):
     """Thread-safe controller for voice commands using Qt signals"""
@@ -106,7 +155,7 @@ class CollapsibleSidebar(QMainWindow):
         self.is_expanded = True
         
         # Create sliding toggle button with arrow (restored)
-        self.toggle_btn = QPushButton("◀")  # Left arrow when expanded
+        self.toggle_btn = DraggableButton("◀", self)  # Left arrow when expanded
         self.toggle_btn.setObjectName("toggle_btn")
         self.toggle_btn.setFixedSize(35, 90)
         self.toggle_btn.clicked.connect(self.toggle_sidebar)
@@ -625,6 +674,10 @@ class CollapsibleSidebar(QMainWindow):
         # Apply circular mask to make window truly circular
         self.apply_circular_mask()
         
+        # Enable mouse tracking for dragging in collapsed state
+        self.setMouseTracking(True)
+        self.toggle_btn.setMouseTracking(True)
+        
         # Show the window again after changing flags
         self.show()
         
@@ -681,10 +734,20 @@ class CollapsibleSidebar(QMainWindow):
     def mousePressEvent(self, event):
         """Handle mouse press for dragging"""
         if event.button() == Qt.LeftButton:
-            self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-            event.accept()
-        else:
-            super().mousePressEvent(event)
+            # When expanded, only allow dragging from the top area (title bar region)
+            if self.is_expanded:
+                # Check if click is in the top 80 pixels (title/header area)
+                if event.position().y() <= 80:
+                    self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+                    event.accept()
+                    return
+            else:
+                # When collapsed, allow dragging from anywhere
+                self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+                event.accept()
+                return
+        
+        super().mousePressEvent(event)
     
     def mouseMoveEvent(self, event):
         """Handle mouse move for dragging"""
