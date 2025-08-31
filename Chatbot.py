@@ -27,6 +27,7 @@ class HaloChat:
                 "Keep responses concise and practical. "
                 "When generating text to copy, prefix with 'Copy below:'"
                 "Do not add any decotative symbols such as # or >"
+                "Please autofill information do not put in [insert here]"
             ),
             generation_config=genai.GenerationConfig(
                 temperature=self.temp,

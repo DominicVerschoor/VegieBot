@@ -4,7 +4,6 @@ import re
 import time
 import json
 
-# GUI imports
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, 
     QFrame, QHBoxLayout, QTextEdit, QCheckBox, QSizePolicy, QDialog
@@ -12,7 +11,6 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QSize, QPropertyAnimation, QEasingCurve, QTimer, QObject, Signal, QSettings
 from PySide6.QtGui import QFont, QIcon, QPixmap
 
-# Optional dependencies
 try:
     import pygame
     pygame.mixer.init()
@@ -35,7 +33,6 @@ except ImportError:
     pyperclip = None
     HAS_CLIPBOARD = False
 
-# Local imports
 from MonitorTracking import HeadMouseTracker
 from VoiceControl import VoskMicRecognizer
 from Chatbot import HaloChat
@@ -105,7 +102,6 @@ class VoiceWindow(QWidget):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(10)
         
-        # Header
         self.header = QLabel("🎤 Voice Typing")
         self.header.setFont(QFont("Segoe UI", 16, QFont.Bold))
         self.header.setStyleSheet("""
@@ -119,7 +115,6 @@ class VoiceWindow(QWidget):
         """)
         layout.addWidget(self.header)
         
-        # Sentence display
         self.sentence = QLabel("")
         self.sentence.setWordWrap(True)
         self.sentence.setFont(QFont("Segoe UI", 18))
@@ -137,7 +132,6 @@ class VoiceWindow(QWidget):
         """)
         layout.addWidget(self.sentence)
         
-        # Status
         self.status = QLabel("Say 'halo type' to start")
         self.status.setFont(QFont("Segoe UI", 12))
         self.status.setStyleSheet("""
@@ -151,7 +145,6 @@ class VoiceWindow(QWidget):
         """)
         layout.addWidget(self.status)
         
-        # Set main window style
         self.setStyleSheet("""
             QWidget {
                 background-color: rgba(0, 0, 0, 0.1);
@@ -175,11 +168,11 @@ class VoiceWindow(QWidget):
         self.move(x, y)
     
     def show_typing_window(self):
-        """Show the voice window"""
+        """Show the voice window without stealing focus from current text box"""
         self.position_window()
         self.show()
         self.raise_()
-        self.activateWindow()
+        # Don't activate the window to preserve focus on the original text box
     
     def hide_typing_window(self):
         """Hide the voice window"""
@@ -188,7 +181,6 @@ class VoiceWindow(QWidget):
 
 class VoiceController(QObject):
     """Handles voice command signals for thread-safe operation"""
-    # Mouse signals
     left_click = Signal()
     right_click = Signal()
     middle_click = Signal()
@@ -197,7 +189,6 @@ class VoiceController(QObject):
     scroll_up = Signal()
     scroll_down = Signal()
     
-    # Voice typing signals
     start_typing = Signal()
     finish_typing = Signal()
     add_word = Signal(str)
@@ -205,18 +196,15 @@ class VoiceController(QObject):
     back = Signal()
     insert = Signal()
     
-    # AI chat signals
     start_ai_typing = Signal()
     finish_ai_typing = Signal()
     add_ai_word = Signal(str)
     
-    # System signals
     update_chat_input = Signal(str)
     shutdown = Signal()
     
     def __init__(self):
         super().__init__()
-        # Connect mouse signals
         self.left_click.connect(self.do_left_click)
         self.right_click.connect(self.do_right_click)
         self.middle_click.connect(self.do_middle_click)
@@ -225,11 +213,9 @@ class VoiceController(QObject):
         self.scroll_up.connect(self.do_scroll_up)
         self.scroll_down.connect(self.do_scroll_down)
         
-        # Voice typing state
         self.voice_typing = False
         self.sentence = ""
         
-        # AI chat state
         self.ai_typing = False
         self.ai_sentence = ""
     def do_left_click(self):
@@ -296,14 +282,12 @@ class HelpDialog(QDialog):
         layout.setSpacing(15)
         layout.setContentsMargins(20, 20, 20, 20)
         
-        # Header
         header = QLabel("🎯 HALO - Available Functions")
         header.setFont(QFont("Segoe UI", 20, QFont.Bold))
         header.setAlignment(Qt.AlignCenter)
         header.setStyleSheet("color: #2c3e50; margin-bottom: 10px;")
         layout.addWidget(header)
         
-        # Content area
         content = QTextEdit()
         content.setReadOnly(True)
         content.setFont(QFont("Segoe UI", 11))
@@ -328,11 +312,14 @@ class HelpDialog(QDialog):
 <p><b>"halo copy"</b> / <b>"halo coffee"</b> - Copy text after "Copy below:" from chatbot</p>
 <p><b>"halo paste"</b> - Paste clipboard content (Ctrl+V)</p>
 <p><b>"enter"</b> / <b>"halo enter"</b> - Press Enter key</p>
+<p><b>"halo new tab"</b> - Open new browser tab (Ctrl+T)</p>
+<p><b>"halo close tab"</b> - Close current tab (Ctrl+W)</p>
+<p><b>"halo close window"</b> - Close current window (Alt+F4)</p>
 <p><b>"halo deactivate"</b> - Turn off all features</p>
 <p><b>"halo close"</b> - Shutdown application</p>
 
 <h2 style="color: #3498db;">🖱️ Mouse Commands</h2>
-<p><b>"click"</b> / <b>"halo click"</b> - Left mouse click</p>
+<p><b>"click"</b> / <b>"quick"</b> / <b>"halo click"</b> - Left mouse click</p>
 <p><b>"right click"</b> / <b>"halo right click"</b> - Right mouse click</p>
 <p><b>"double click"</b> / <b>"halo double click"</b> - Double click</p>
 <p><b>"shift click"</b> / <b>"halo shift click"</b> - Shift + left click</p>
@@ -359,10 +346,8 @@ class HelpDialog(QDialog):
         content.setHtml(help_text)
         layout.addWidget(content)
         
-        # Bottom section with checkbox and buttons
         bottom_layout = QHBoxLayout()
         
-        # Don't remind me checkbox
         self.dont_remind_checkbox = QCheckBox("Don't show this help on startup")
         self.dont_remind_checkbox.setFont(QFont("Segoe UI", 10))
         self.dont_remind_checkbox.setChecked(self.settings.value("dont_show_help", False, type=bool))
@@ -370,7 +355,6 @@ class HelpDialog(QDialog):
         
         bottom_layout.addStretch()
         
-        # Close button
         close_btn = QPushButton("Got it!")
         close_btn.setFont(QFont("Segoe UI", 12, QFont.Bold))
         close_btn.setFixedSize(100, 40)
@@ -396,7 +380,6 @@ class HelpDialog(QDialog):
         screen = QApplication.primaryScreen().availableGeometry()
         dialog_size = self.geometry()
         
-        # Calculate center position
         x = (screen.width() - dialog_size.width()) // 2
         y = (screen.height() - dialog_size.height()) // 2
         
@@ -413,20 +396,16 @@ class HaloApp(QMainWindow):
         super().__init__()
         self.setWindowTitle("HALO Control Panel")
         
-        # Window dimensions
         self.width_expanded = 420
         self.width_collapsed = 80
         
-        # Set window icon
         self.set_window_icon()
         
-        # Screen setup
         screen = QApplication.primaryScreen().availableGeometry()
         self.top_margin = 50
         self.bottom_margin = 50
         self.height = screen.height() - self.top_margin - self.bottom_margin
         
-        # Feature states
         self.states = {
             'face_tracking': False,
             'ai_agent': False,
@@ -434,33 +413,26 @@ class HaloApp(QMainWindow):
             'performance_mode': False
         }
         
-        # Feature colors - bold red, purple, blue
         self.colors = {
-            'face_tracking': '#FF0000',      # Bold Red
-            'ai_agent': '#8800FF',           # Bold Purple  
-            'voice': '#0066FF',              # Bold Blue
-            'performance_mode': '#FF6600'    # Bold Orange
+            'face_tracking': '#FF0000',
+            'ai_agent': '#8800FF',
+            'voice': '#0066FF',
+            'performance_mode': '#FF6600'
         }
         
-        # Window setup
         self.setFixedSize(self.width_expanded, self.height)
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
         
-        # Position window
         self.move(screen.width() - self.width_expanded, self.top_margin)
         
-        # State
         self.expanded = True
         
-        # Create UI
         self.setup_ui()
         self.load_stylesheet()
         self.start_chat()
         
-        # Show help dialog on first startup (unless disabled)
         QTimer.singleShot(1000, self.maybe_show_startup_help)
         
-        # Drag support
         self.drag_pos = None
     
     def set_window_icon(self):
@@ -474,7 +446,7 @@ class HaloApp(QMainWindow):
     
     def setup_ui(self):
         """Setup the main user interface"""
-        # Clear any existing central widget first
+        # Clear any existing central widget first to prevent memory leaks
         if self.centralWidget():
             old_widget = self.centralWidget()
             old_widget.setParent(None)
@@ -487,16 +459,13 @@ class HaloApp(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         
-        # Toggle button - minimize/expand sidebar
         self.toggle_btn = DragButton("▶", self)
         self.toggle_btn.setObjectName("toggle_btn")
         self.toggle_btn.setFixedSize(35, 90)
         self.toggle_btn.clicked.connect(self.toggle_sidebar)
         
-        # Force the proper styling for the toggle button
         self.apply_toggle_button_style()
         
-        # Content widget  
         self.content = QWidget()
         self.content.setFixedWidth(self.width_expanded - 35)
         
@@ -504,11 +473,9 @@ class HaloApp(QMainWindow):
         content_layout.setSpacing(18)
         content_layout.setContentsMargins(25, 25, 25, 25)
         
-        # Top section
         top_section = self.create_top_section()
         content_layout.addWidget(top_section)
         
-        # Separator
         separator = QFrame()
         separator.setObjectName("separator")
         separator.setFrameShape(QFrame.HLine)
@@ -516,26 +483,21 @@ class HaloApp(QMainWindow):
         
         content_layout.addStretch()
         
-        # Control buttons
         self.create_control_buttons(content_layout)
         
         content_layout.addStretch()
         
-        # Chat interface
         self.chat_widget = self.create_chat_interface()
         self.chat_widget.setVisible(False)
         content_layout.addWidget(self.chat_widget)
         
         content_layout.addStretch()
         
-        # Add to main layout - toggle button on left, content on right
         layout.addWidget(self.toggle_btn, alignment=Qt.AlignLeft | Qt.AlignVCenter)
         layout.addWidget(self.content)
         
-        # Voice window
         self.voice_window = VoiceWindow(self)
         
-        # Voice controller
         self.voice_controller = VoiceController()
         self.connect_voice_signals()
     
@@ -547,12 +509,10 @@ class HaloApp(QMainWindow):
         
         header_layout = QHBoxLayout()
         
-        # Title with logo
         title_container = self.create_title_section()
         header_layout.addWidget(title_container)
         header_layout.addStretch()
         
-        # Help button
         help_btn = QPushButton("?")
         help_btn.setObjectName("help_btn")
         help_btn.setFixedSize(40, 40)
@@ -561,7 +521,6 @@ class HaloApp(QMainWindow):
         help_btn.clicked.connect(self.show_help_dialog)
         header_layout.addWidget(help_btn)
         
-        # Close button
         close_btn = QPushButton("✕")
         close_btn.setObjectName("close_btn")
         close_btn.setFixedSize(40, 40)
@@ -569,7 +528,6 @@ class HaloApp(QMainWindow):
         close_btn.clicked.connect(self.close_application)
         header_layout.addWidget(close_btn)
         
-        # Status bar
         self.status = QLabel()
         self.status.setObjectName("status_label")
         self.status.setAlignment(Qt.AlignLeft)
@@ -587,7 +545,6 @@ class HaloApp(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
         
-        # Logo
         try:
             logo_path = os.path.join(os.path.dirname(__file__), 'imgs', 'logo.png')
             if os.path.exists(logo_path):
@@ -600,7 +557,6 @@ class HaloApp(QMainWindow):
         except Exception as e:
             print(f"Logo error: {e}")
         
-        # Title
         title = QLabel(" HALO ")
         title.setObjectName("title_label")
         title.setAlignment(Qt.AlignLeft)
@@ -797,6 +753,57 @@ class HaloApp(QMainWindow):
         except Exception as e:
             print(f"Error pressing Enter key: {e}")
 
+    def open_new_tab(self):
+        """Open a new tab using Ctrl+T keyboard shortcut"""
+        if not pyautogui:
+            print("New tab functionality not available - pyautogui not installed")
+            return
+        
+        try:
+            # Execute Ctrl+T to open new tab
+            pyautogui.hotkey('ctrl', 't')
+            print("New tab opened (Ctrl+T)")
+            
+            # Play sound feedback
+            self.play_beep_sound()
+            
+        except Exception as e:
+            print(f"Error opening new tab: {e}")
+
+    def close_tab(self):
+        """Close current tab using Ctrl+W keyboard shortcut"""
+        if not pyautogui:
+            print("Close tab functionality not available - pyautogui not installed")
+            return
+        
+        try:
+            # Execute Ctrl+W to close tab
+            pyautogui.hotkey('ctrl', 'w')
+            print("Tab closed (Ctrl+W)")
+            
+            # Play sound feedback
+            self.play_beep_sound()
+            
+        except Exception as e:
+            print(f"Error closing tab: {e}")
+
+    def close_window(self):
+        """Close current window using Alt+F4 keyboard shortcut"""
+        if not pyautogui:
+            print("Close window functionality not available - pyautogui not installed")
+            return
+        
+        try:
+            # Execute Alt+F4 to close window
+            pyautogui.hotkey('alt', 'f4')
+            print("Window closed (Alt+F4)")
+            
+            # Play sound feedback
+            self.play_beep_sound()
+            
+        except Exception as e:
+            print(f"Error closing window: {e}")
+
     def graceful_shutdown(self):
         """Gracefully shut down operations one by one to prevent lag"""
         print("Initiating graceful shutdown...")
@@ -921,12 +928,11 @@ class HaloApp(QMainWindow):
         """Create the AI agent interface with assistant selection and feature cards"""
         chat_container = QWidget()
         chat_container.setObjectName("chat_container")
-        # Remove fixed height to allow dynamic sizing
         chat_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
         chat_layout = QVBoxLayout(chat_container)
-        chat_layout.setContentsMargins(15, 10, 15, 10)  # Reduced margins
-        chat_layout.setSpacing(12)  # Reduced spacing
+        chat_layout.setContentsMargins(15, 10, 15, 10)
+        chat_layout.setSpacing(12)
         
         # HALO AI Header with logo
         ai_header_container = QWidget()
@@ -935,7 +941,6 @@ class HaloApp(QMainWindow):
         ai_header_layout.setSpacing(8)
         ai_header_layout.setAlignment(Qt.AlignCenter)
         
-        # Try to add larger logo for AI interface
         try:
             logo_path = os.path.join(os.path.dirname(__file__), 'imgs', 'logo.png')
             if os.path.exists(logo_path):
@@ -954,7 +959,7 @@ class HaloApp(QMainWindow):
         halo_header.setAlignment(Qt.AlignCenter)
         ai_header_layout.addWidget(halo_header)
         
-        ai_header_container.setMinimumHeight(80)  # Reduced from 120
+        ai_header_container.setMinimumHeight(80)
         chat_layout.addWidget(ai_header_container)
         
         # Add smaller spacer
@@ -1088,8 +1093,10 @@ class HaloApp(QMainWindow):
             # Click commands (with and without halo/hello/hey prefix)
             r'^click$': self.voice_controller.left_click,
             r'^left\s*click$': self.voice_controller.left_click,
+            r'^quick$': self.voice_controller.left_click,
             r'^(halo|hello|hey)\s+click$': self.voice_controller.left_click,
             r'^(halo|hello|hey)\s+left\s*click$': self.voice_controller.left_click,
+            r'^(halo|hello|hey)\s+quick$': self.voice_controller.left_click,
             
             # Right click commands
             r'^right\s*click$': self.voice_controller.right_click,
@@ -1163,6 +1170,24 @@ class HaloApp(QMainWindow):
         if self.matches_command(text, ["halo enter", "hello enter", "hey enter", "halo return", "hello return", "hey return", "enter", "return"]):
             print("Voice enter command detected")
             self.press_enter_key()
+            return True
+        
+        # Open new tab
+        if self.matches_command(text, ["halo new tab", "hello new tab", "hey new tab", "halo open tab", "hello open tab", "hey open tab"]):
+            print("Voice new tab command detected")
+            self.open_new_tab()
+            return True
+        
+        # Close tab
+        if self.matches_command(text, ["halo close tab", "hello close tab", "hey close tab"]):
+            print("Voice close tab command detected")
+            self.close_tab()
+            return True
+        
+        # Close window
+        if self.matches_command(text, ["halo close window", "hello close window", "hey close window"]):
+            print("Voice close window command detected")
+            self.close_window()
             return True
         
         # Start voice typing
@@ -1251,6 +1276,7 @@ class HaloApp(QMainWindow):
         # Exact matches for paste command
         paste_commands = [
             "halo paste",
+            "halo piece",
             "hello paste", 
             "hey paste",
             "halo paste text",
@@ -1303,14 +1329,15 @@ class HaloApp(QMainWindow):
                 print(f"Error performing Ctrl+Backspace: {e}")
     
     def start_voice_typing(self):
-        """Start voice typing mode"""
+        """Start voice typing mode while preserving focus on current text box"""
         self.voice_controller.voice_typing = True
         self.voice_controller.sentence = ""
+        # Show voice window without stealing focus from the currently selected text box
         self.voice_window.show_typing_window()
         self.voice_window.update_sentence("")
         self.voice_window.update_status("🎤 Listening... Say 'halo done' to finish")
         self.play_beep_sound()  # Play beep sound when starting voice typing
-        print("Voice typing mode started")
+        print("Voice typing mode started - focus preserved on target text box")
     
     def add_to_sentence(self, text: str):
         """Add words to the current sentence being typed"""
@@ -1484,6 +1511,9 @@ class HaloApp(QMainWindow):
         self.voice_controller.ai_sentence = ""
         self.voice_window.show_typing_window()
         self.voice_window.update_sentence("")
+        
+        # Focus the AI chat input box
+        self.chat_input.setFocus()
         self.voice_window.update_status("🤖 AI Chat Mode - Say 'halo done' to finish")
         # Update header to show AI mode
         self.voice_window.header.setText("🤖 AI Chat Typing")
@@ -1576,7 +1606,7 @@ class HaloApp(QMainWindow):
             # Automatically send the message to AI
             self.send_message()
         else:
-            # Stop AI typing mode even if no text
+            # Stop AI typing mode even if no textI'm using museum's assistive technology to type this.
             self.stop_ai_typing()
     
     def stop_ai_typing(self):
